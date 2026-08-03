@@ -1,4 +1,5 @@
 import os
+import re
 
 from dotenv import load_dotenv
 
@@ -9,7 +10,6 @@ from feedback_service import FeedbackService
 from execution_context import ExecutionContext
 from planner_service import PlannerService
 from developer_service import DeveloperService
-from patch_engine import PatchEngine
 from validator import Validator
 from git_service import GitService
 
@@ -136,17 +136,39 @@ with open("patches/latest.patch", "w", encoding="utf-8") as file:
     file.write(patch)
 
 # ==========================================================
-# Apply Patch
+# Apply Patch (XML file blocks)
 # ==========================================================
 
-engine = PatchEngine()
+print("\n========== RAW PATCH OUTPUT (first 500 chars) ==========")
+print(patch[:500])
+print("========================================================\n")
 
-success, error = engine.apply(patch)
+# Strip markdown wrappers if present
+md_match = re.search(r'```(?:xml)?\s*(.*?)\s*```', patch, re.DOTALL)
+if md_match:
+    patch = md_match.group(1)
 
-if not success:
+# Parse XML file blocks
+file_pattern = re.compile(
+    r'<file>\s*<path>(.*?)</path>\s*<content>(.*?)</content>\s*</file>',
+    re.DOTALL
+)
+file_matches = file_pattern.findall(patch)
+
+if not file_matches:
     print("\n❌ Patch Apply Failed\n")
-    print(error)
+    print("No valid <file> XML blocks found in the LLM output.")
+    print("Full output was:")
+    print(patch[:2000])
     exit(1)
+
+for file_path, file_content in file_matches:
+    file_path = file_path.strip()
+    file_content = file_content.strip() + '\n'
+    os.makedirs(os.path.dirname(file_path) or '.', exist_ok=True)
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(file_content)
+    print(f"  ✏️  Wrote: {file_path}")
 
 print("✅ Patch Applied")
 

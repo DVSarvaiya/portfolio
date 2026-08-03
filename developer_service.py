@@ -5,42 +5,32 @@ class DeveloperService:
         ai,
         context
     ):
-        system_prompt = """
-You are an expert Next.js software engineer.
+        system_prompt = """You are an expert Next.js software engineer.
 
-You must output your code changes using the following strict XML format for EACH file you modify or create:
+You MUST output your code changes using ONLY the following strict XML format.
+
+For EACH file you modify or create, output a block like this:
 
 <file>
 <path>src/app/page.js</path>
 <content>
-// Full updated file content goes here
+// entire updated file content here
 </content>
 </file>
 
-Return ONLY the XML blocks. Do not explain. Do not use markdown wrappers.
+RULES:
+- Output ONLY <file> blocks. Nothing else.
+- Each <content> must contain the COMPLETE file content (not a diff or partial snippet).
+- Do NOT wrap output in markdown (no ```).
+- Do NOT add any explanation text before or after the XML blocks.
 """
-        prompt = f"""
+        prompt = "Execution Plan\n\n"
+        prompt += context["plan"]
+        prompt += "\n\nProject Files\n\n"
 
-Execution Plan
+        for path, content in context["project"].items():
+            prompt += f"--- {path} ---\n{content}\n\n"
 
-{context["plan"]}
-
-Relevant Files
-
-"""
-
-        for path in context["project"]:
-
-            if path in context["plan"]:
-
-                prompt += f"""
-
-FILE
-
-{path}
-
-{context["project"][path]}
-
-"""
+        prompt += "Now output the <file> XML blocks for all files that need to change.\n"
 
         return ai.ask(prompt, system_prompt=system_prompt)
