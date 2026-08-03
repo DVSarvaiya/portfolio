@@ -35,7 +35,10 @@ class AIService:
                     messages=messages,
                     max_tokens=4096
                 )
-                return response.choices[0].message.content
+                content = response.choices[0].message.content
+                if "User Safety: safe" in content:
+                    raise Exception("OpenRouter safety filter triggered.")
+                return content
             except Exception as e:
                 print(f"⚠️ API attempt {attempt}/{retries} failed: {e}")
                 if attempt < retries:

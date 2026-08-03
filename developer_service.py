@@ -18,8 +18,8 @@ For EACH file you modify, output a block like this:
 </content>
 </file>
 
-STRICT RULES:
-1. Output ONLY <file> blocks. Nothing else. No explanation.
+Guidelines:
+1. Output the <file> blocks directly. No additional explanation.
 2. Each <content> MUST contain the COMPLETE file content.
 3. Do NOT wrap output in markdown (no ```).
 4. Do NOT import modules or components that do not already exist in the project.
