@@ -1,0 +1,26 @@
+diff --git a/app/page.tsx b/app/page.tsx
+new file mode 100644
+index 0000000..a1b2c3d
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -0,0 +1,12 +@
++import Dynamic from 'next/dynamic'
++import 'tailwindcss/tailwind.css'
++
++const Home = () => (
++  <div className="flex justify-center items-center h-screen">
++    <h1 className="text-4xl font-bold">Welcome to Next.js App</h1>
++  </div>
++)
++
++const App = () => (
++  <div>
++    <Home />
++  </div>
++)
++katex
++const Kex = Dynamic(() => import('katex'), {
++  ssr: false,
++})
++
++export default App
