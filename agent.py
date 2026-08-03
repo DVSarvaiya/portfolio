@@ -112,6 +112,16 @@ print("\n========== PLAN ==========\n")
 print(plan)
 print("\n==========================\n")
 
+# Validate plan is actionable — check that it references at least one project file
+plan_references_files = any(
+    path in plan for path in project.keys()
+)
+
+if len(plan.strip()) < 50 or not plan_references_files:
+    print("⚠️  Plan does not contain actionable changes (no project files referenced).")
+    print("🎉 Agent Exiting — nothing to do.")
+    exit(0)
+
 os.makedirs("plans", exist_ok=True)
 
 with open("plans/latest.md", "w", encoding="utf-8") as file:
