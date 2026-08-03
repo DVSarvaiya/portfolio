@@ -1,4 +1,5 @@
 from openai import OpenAI
+import time
 
 
 class AIService:
@@ -7,12 +8,13 @@ class AIService:
 
         self.client = OpenAI(
             api_key=api_key,
-            base_url="https://openrouter.ai/api/v1"
+            base_url="https://openrouter.ai/api/v1",
+            timeout=120.0
         )
 
         self.model = model
 
-    def ask(self, prompt, system_prompt=None):
+    def ask(self, prompt, system_prompt=None, retries=3):
 
         messages = []
         if system_prompt:
@@ -26,11 +28,18 @@ class AIService:
             "content": prompt
         })
 
-        response = self.client.chat.completions.create(
-
-            model=self.model,
-
-            messages=messages
-        )
-
-        return response.choices[0].message.content
+        for attempt in range(1, retries + 1):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                print(f"⚠️ API attempt {attempt}/{retries} failed: {e}")
+                if attempt < retries:
+                    wait = attempt * 10
+                    print(f"   Retrying in {wait}s...")
+                    time.sleep(wait)
+                else:
+                    raise Exception(f"API failed after {retries} attempts: {e}")

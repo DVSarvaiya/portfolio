@@ -26,6 +26,6 @@ Risks
 """
 
         return ai.ask(
-            planning_prompt + "\n\n" + str(context),
+            planning_prompt,
             system_prompt=system_prompt
         )

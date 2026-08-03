@@ -32,7 +32,14 @@ class FileManager:
             ".git",
             ".next",
             "logs",
-            "venv"
+            "venv",
+            "__pycache__",
+            "patches",
+            "plans"
+        }
+
+        ignored_files = {
+            "package-lock.json",
         }
 
         project = {}
@@ -46,6 +53,9 @@ class FileManager:
                 continue
 
             if file.suffix not in allowed_extensions:
+                continue
+
+            if file.name in ignored_files:
                 continue
 
             relative = file.relative_to(self.root)
