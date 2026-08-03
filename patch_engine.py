@@ -1,41 +1,29 @@
-import subprocess
-import tempfile
+import os
 import re
 
 
 class PatchEngine:
 
-    def apply(self, patch):
-
-        # Strip markdown code blocks if the LLM hallucinated them
-        match = re.search(r'```(?:diff)?\s*(.*?)\s*```', patch, re.DOTALL)
+    def apply(self, patch_str):
+        
+        # Strip outer markdown blocks if LLM still uses them
+        match = re.search(r'```(?:xml)?\s*(.*?)\s*```', patch_str, re.DOTALL)
         if match:
-            patch = match.group(1)
-        elif patch.startswith('```'):
-            # Fallback if closing ticks are missing
-            patch = patch.split('\n', 1)[-1]
-
-        with tempfile.NamedTemporaryFile(
-            delete=False,
-            suffix=".patch",
-            mode="w"
-        ) as file:
-
-            file.write(patch)
-
-            patch_file = file.name
-
-        result = subprocess.run(
-
-            [
-                "git",
-                "apply",
-                patch_file
-            ],
-
-            capture_output=True,
-
-            text=True
-        )
-
-        return result.returncode == 0, result.stderr
+            patch_str = match.group(1)
+            
+        pattern = re.compile(r'<file>\s*<path>(.*?)</path>\s*<content>(.*?)</content>\s*</file>', re.DOTALL)
+        matches = pattern.findall(patch_str)
+        
+        if not matches:
+            return False, "No valid <file> XML blocks found in the output."
+            
+        for path, content in matches:
+            path = path.strip()
+            content = content.strip() + '\n'
+            
+            os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+            
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(content)
+                
+        return True, ""

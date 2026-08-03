@@ -8,17 +8,16 @@ class DeveloperService:
         system_prompt = """
 You are an expert Next.js software engineer.
 
-Return ONLY a unified git patch.
+You must output your code changes using the following strict XML format for EACH file you modify or create:
 
-Never explain.
+<file>
+<path>src/app/page.js</path>
+<content>
+// Full updated file content goes here
+</content>
+</file>
 
-Never use markdown.
-
-Never wrap inside ```.
-
-Output must begin with:
-
-diff --git
+Return ONLY the XML blocks. Do not explain. Do not use markdown wrappers.
 """
         prompt = f"""
 
