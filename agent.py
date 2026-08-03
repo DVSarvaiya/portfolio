@@ -136,7 +136,7 @@ with open("patches/latest.patch", "w", encoding="utf-8") as file:
     file.write(patch)
 
 # ==========================================================
-# Apply Patch (XML file blocks)
+# Apply Patch (XML file blocks) with backup & rollback
 # ==========================================================
 
 print("\n========== RAW PATCH OUTPUT (first 500 chars) ==========")
@@ -148,12 +148,19 @@ md_match = re.search(r'```(?:xml)?\s*(.*?)\s*```', patch, re.DOTALL)
 if md_match:
     patch = md_match.group(1)
 
-# Parse XML file blocks
+# Parse XML file blocks — only COMPLETE blocks with closing tags
 file_pattern = re.compile(
     r'<file>\s*<path>(.*?)</path>\s*<content>(.*?)</content>\s*</file>',
     re.DOTALL
 )
 file_matches = file_pattern.findall(patch)
+
+# Detect truncated blocks (opened but never closed)
+open_count = patch.count('<file>')
+close_count = patch.count('</file>')
+if open_count > close_count:
+    print(f"⚠️  Warning: LLM output was truncated ({open_count} blocks opened, {close_count} closed)")
+    print(f"   Only {close_count} complete block(s) will be applied.\n")
 
 if not file_matches:
     print("\n❌ Patch Apply Failed\n")
@@ -162,6 +169,17 @@ if not file_matches:
     print(patch[:2000])
     exit(1)
 
+# Backup files before writing
+import shutil
+backups = {}
+for file_path, _ in file_matches:
+    file_path = file_path.strip()
+    if os.path.exists(file_path):
+        backup_path = file_path + ".bak"
+        shutil.copy2(file_path, backup_path)
+        backups[file_path] = backup_path
+
+# Write files
 for file_path, file_content in file_matches:
     file_path = file_path.strip()
     file_content = file_content.strip() + '\n'
@@ -183,7 +201,24 @@ success, error = validator.run()
 if not success:
     print("\n❌ Validation Failed\n")
     print(error)
+    # Rollback all files from backups
+    print("\n🔄 Rolling back changes...")
+    for original, backup in backups.items():
+        shutil.move(backup, original)
+        print(f"  ↩️  Restored: {original}")
+    # Clean up any new files that didn't have backups
+    for file_path, _ in file_matches:
+        file_path = file_path.strip()
+        if file_path not in backups and os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"  🗑️  Removed new file: {file_path}")
+    print("✅ Rollback complete — no broken code was committed.")
     exit(1)
+
+# Clean up backup files
+for backup in backups.values():
+    if os.path.exists(backup):
+        os.remove(backup)
 
 print("✅ Build Successful")
 
