@@ -2,10 +2,13 @@ from openai import OpenAI
 import time
 
 
+# Verified free models from OpenRouter API (Aug 2026)
+# These have $0 prompt + $0 completion pricing
 FALLBACK_MODELS = [
-    "openrouter/auto",
-    "nvidia/nemotron-nano-9b-v2:free",
-    "north/north-mini-code:free",
+    "openrouter/free",                              # Smart router — free models only
+    "google/gemma-4-31b-it:free",                    # 262k ctx, 32k output
+    "nvidia/nemotron-3-super-120b-a12b:free",        # 262k ctx, 262k output
+    "nvidia/nemotron-3.5-lightning:free",             # 1M ctx, 65k output
 ]
 
 
@@ -36,6 +39,7 @@ class AIService:
         })
 
         current_model = self.model
+        fallback_index = 0
 
         for attempt in range(1, retries + 1):
             try:
@@ -50,14 +54,28 @@ class AIService:
                 return content
             except Exception as e:
                 error_str = str(e)
-                is_model_unavailable = "404" in error_str or "not found" in error_str.lower()
+                is_model_error = (
+                    "404" in error_str
+                    or "402" in error_str
+                    or "not found" in error_str.lower()
+                    or "requires more credits" in error_str.lower()
+                )
 
-                if is_model_unavailable and current_model != "openrouter/auto":
-                    # Model was removed from free tier — switch to auto router
-                    print(f"⚠️ Model '{current_model}' unavailable. Switching to fallback...")
-                    current_model = "openrouter/auto"
-                    # Don't count this as a wasted attempt — retry immediately
-                    continue
+                # If model is unavailable or costs money, try next fallback
+                if is_model_error and fallback_index < len(FALLBACK_MODELS):
+                    next_model = FALLBACK_MODELS[fallback_index]
+                    fallback_index += 1
+                    # Skip if we're already using this model
+                    if next_model == current_model:
+                        if fallback_index < len(FALLBACK_MODELS):
+                            next_model = FALLBACK_MODELS[fallback_index]
+                            fallback_index += 1
+                        else:
+                            next_model = None
+                    if next_model:
+                        print(f"⚠️ Model '{current_model}' unavailable/paid. Switching to '{next_model}'...")
+                        current_model = next_model
+                        continue
 
                 print(f"⚠️ API attempt {attempt}/{retries} failed: {e}")
                 if attempt < retries:
