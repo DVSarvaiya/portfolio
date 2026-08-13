@@ -24,7 +24,7 @@ class AIService:
 
         self.model = model
 
-    def ask(self, prompt, system_prompt=None, retries=3):
+    def ask(self, prompt, system_prompt=None, retries=3, max_tokens=16384):
 
         messages = []
         if system_prompt:
@@ -46,7 +46,7 @@ class AIService:
                 response = self.client.chat.completions.create(
                     model=current_model,
                     messages=messages,
-                    max_tokens=4096
+                    max_tokens=max_tokens
                 )
                 content = response.choices[0].message.content
                 if "User Safety: safe" in content:

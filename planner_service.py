@@ -1,11 +1,14 @@
+import re
+
+
 class PlannerService:
 
     def build_plan(self, ai, context):
         system_prompt = """You are a Senior Software Architect planning code changes for a Next.js portfolio website.
 
-You receive feedback from the user and a list of files in the project. Your job is to create a specific, actionable plan that a developer can follow to implement the requested changes.
+CRITICAL: Output ONLY the plan. No thinking, no analysis, no reasoning. Start your response with "GOAL:" immediately.
 
-You MUST respond with a plan in this exact format:
+You MUST respond in this EXACT format and nothing else:
 
 GOAL: [one sentence describing what needs to change]
 
@@ -21,6 +24,7 @@ RULES:
 - Be specific about what code to add, remove, or change.
 - Keep changes minimal and focused on the feedback.
 - Do NOT suggest creating new component files unless absolutely necessary.
+- Do NOT output any thinking, reasoning, or analysis before the plan.
 """
 
         file_list = "\\n".join(f"- {path}" for path in context["project"].keys())
@@ -32,9 +36,22 @@ RULES:
 Here are the files in the project:
 {file_list}
 
-Create a specific plan to implement the feedback. Focus on modifying existing files only."""
+Create a specific plan to implement the feedback. Focus on modifying existing files only.
+Start your response with "GOAL:" immediately. No thinking or analysis."""
 
-        return ai.ask(
+        result = ai.ask(
             planning_prompt,
-            system_prompt=system_prompt
+            system_prompt=system_prompt,
+            max_tokens=1024
         )
+
+        # Strip thinking blocks that free models often prepend
+        result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
+        result = re.sub(r"(?i)^.*?here'?s?\s+(a\s+)?thinking.*?:\s*", '', result, flags=re.DOTALL)
+
+        # Extract from "GOAL:" onwards if there's preamble
+        goal_match = re.search(r'(GOAL:.*)', result, re.DOTALL)
+        if goal_match:
+            result = goal_match.group(1)
+
+        return result.strip()

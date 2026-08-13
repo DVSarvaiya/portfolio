@@ -177,6 +177,21 @@ if open_count > close_count:
     print(f"⚠️  Warning: LLM output was truncated ({open_count} blocks opened, {close_count} closed)")
     print(f"   Only {close_count} complete block(s) will be applied.\n")
 
+    # Try to salvage truncated blocks — extract path + whatever content exists
+    truncated_pattern = re.compile(
+        r'<file>\s*<path>(.*?)</path>\s*<content>(.*?)(?:</content>\s*</file>|$)',
+        re.DOTALL
+    )
+    salvaged = truncated_pattern.findall(patch)
+    if salvaged and not file_matches:
+        for path, content in salvaged:
+            path = path.strip()
+            content = content.strip()
+            # Only use if content looks substantial (at least has an export/import)
+            if len(content) > 100 and ('export' in content or 'import' in content or '{' in content):
+                file_matches.append((path, content))
+                print(f"  🔧 Salvaged truncated block: {path} ({len(content)} chars)")
+
 # Fallback: if no XML blocks, try to extract from markdown code fences
 if not file_matches:
     print("⚠️  No XML blocks found. Trying fallback parser (markdown code fences)...")
