@@ -153,9 +153,14 @@ print("\n========== RAW PATCH OUTPUT (first 500 chars) ==========")
 print(patch[:500])
 print("========================================================\n")
 
+# Strip thinking/reasoning blocks that some models prepend
+# Handles: <think>...</think>, "Here's a thinking process:...", etc.
+patch = re.sub(r'<think>.*?</think>', '', patch, flags=re.DOTALL)
+patch = re.sub(r"^.*?(?=<file>)", '', patch, count=1, flags=re.DOTALL) if '<file>' in patch else patch
+
 # Strip markdown wrappers if present
 md_match = re.search(r'```(?:xml)?\s*(.*?)\s*```', patch, re.DOTALL)
-if md_match:
+if md_match and '<file>' in md_match.group(1):
     patch = md_match.group(1)
 
 # Parse XML file blocks — only COMPLETE blocks with closing tags
@@ -171,6 +176,46 @@ close_count = patch.count('</file>')
 if open_count > close_count:
     print(f"⚠️  Warning: LLM output was truncated ({open_count} blocks opened, {close_count} closed)")
     print(f"   Only {close_count} complete block(s) will be applied.\n")
+
+# Fallback: if no XML blocks, try to extract from markdown code fences
+if not file_matches:
+    print("⚠️  No XML blocks found. Trying fallback parser (markdown code fences)...")
+
+    # Look for ```lang ... ``` blocks and try to map them to project files
+    code_blocks = re.findall(r'```(?:jsx?|tsx?|css|html)\s*\n(.*?)```', patch, re.DOTALL)
+
+    if code_blocks:
+        # Try to identify which files these belong to using the plan
+        plan_text = plan
+        plan_files = re.findall(r'[-•]\s*(src/\S+|public/\S+)', plan_text)
+
+        for i, block in enumerate(code_blocks):
+            block = block.strip()
+            if not block:
+                continue
+
+            # Try to match by file extension and plan references
+            guessed_path = None
+            if i < len(plan_files):
+                guessed_path = plan_files[i]
+            elif '.css' in block[:100] or block.strip().startswith('/*') or block.strip().startswith(':root') or block.strip().startswith('.') or block.strip().startswith('@'):
+                # Looks like CSS
+                for pf in plan_files:
+                    if pf.endswith('.css'):
+                        guessed_path = pf
+                        break
+                if not guessed_path:
+                    guessed_path = "src/app/globals.css"
+            elif 'export' in block[:200] or 'import' in block[:200] or 'function' in block[:200]:
+                # Looks like JS/JSX
+                for pf in plan_files:
+                    if pf.endswith('.js') or pf.endswith('.jsx') or pf.endswith('.ts') or pf.endswith('.tsx'):
+                        guessed_path = pf
+                        break
+
+            if guessed_path and guessed_path not in [m[0] for m in file_matches]:
+                file_matches.append((guessed_path, block))
+                print(f"  📎 Mapped code block to: {guessed_path}")
 
 if not file_matches:
     print("\n❌ Patch Apply Failed\n")
