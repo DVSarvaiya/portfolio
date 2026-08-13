@@ -2,6 +2,13 @@ from openai import OpenAI
 import time
 
 
+FALLBACK_MODELS = [
+    "openrouter/auto",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "north/north-mini-code:free",
+]
+
+
 class AIService:
 
     def __init__(self, api_key, model):
@@ -28,10 +35,12 @@ class AIService:
             "content": prompt
         })
 
+        current_model = self.model
+
         for attempt in range(1, retries + 1):
             try:
                 response = self.client.chat.completions.create(
-                    model=self.model,
+                    model=current_model,
                     messages=messages,
                     max_tokens=4096
                 )
@@ -40,6 +49,16 @@ class AIService:
                     raise Exception("OpenRouter safety filter triggered.")
                 return content
             except Exception as e:
+                error_str = str(e)
+                is_model_unavailable = "404" in error_str or "not found" in error_str.lower()
+
+                if is_model_unavailable and current_model != "openrouter/auto":
+                    # Model was removed from free tier — switch to auto router
+                    print(f"⚠️ Model '{current_model}' unavailable. Switching to fallback...")
+                    current_model = "openrouter/auto"
+                    # Don't count this as a wasted attempt — retry immediately
+                    continue
+
                 print(f"⚠️ API attempt {attempt}/{retries} failed: {e}")
                 if attempt < retries:
                     wait = attempt * 10
