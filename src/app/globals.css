@@ -3,6 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --primary: #1d4ed8;
+  --primary-hover: #1e40af;
+  --secondary: #6b7280;
+  --accent: #f59e0b;
 }
 
 @theme inline {
@@ -23,6 +27,77 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Transition utilities */
+.transition-all {
+  transition: all 0.3s ease;
+}
+.duration-300 {
+  transition-duration: 300ms;
+}
+
+/* Button styles */
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+.btn-secondary {
+  background: var(--secondary);
+  color: white;
+}
+.btn-secondary:hover {
+  background: var(--accent);
+}
+
+/* Skill card */
+.skill-card {
+  background: var(--background);
+  border: 1px solid var(--foreground);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+.skill-card:hover {
+  transform: scale(1.05);
+}
+
+/* Contact form */
+.contact-input {
+  border: 1px solid var(--foreground);
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  width: 100%;
+}
+.error-msg {
+  color: red;
+  font-size: 0.875rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+.slide-up {
+  animation: slideUp 0.5s ease forwards;
 }
 
 /* New styles */
