@@ -68,16 +68,16 @@ export default function Home() {
         href="https://www.linkedin.com/in/dvsarvaiya"
         target="_blank"
         rel="noopener noreferrer"
-        style={{ marginTop: "0.5rem", display: "inline-block" }}
+        className="btn btn-primary interactive"
       >
-        <button type="button" className="btn btn-primary">LinkedIn</button>
+        LinkedIn
       </a>
       <p className="subtitle">Portfolio • Developer</p>
       <a
         href="https://github.com/DVSarvaiya"
         target="_blank"
         rel="noopener noreferrer"
-        className="btn btn-secondary mt-2"
+        className="btn btn-secondary mt-2 interactive"
       >
         GitHub
       </a>
@@ -85,7 +85,7 @@ export default function Home() {
       <button
         type="button"
         onClick={() => setShowProjects((prev) => !prev)}
-        className="mt-4 px-4 py-2 bg-green-500 text-white rounded transition-all"
+        className="mt-4 px-4 py-2 bg-green-500 text-white rounded transition-all interactive"
       >
         {showProjects ? "Hide Projects" : "Show Projects"}
       </button>
@@ -95,37 +95,34 @@ export default function Home() {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="p-4 border rounded shadow-sm text-left"
+              className="p-4 border rounded shadow-sm text-left card interactive"
             >
-              <h2 className="font-bold text-lg">{project.title}</h2>
-              <p className="text-sm text-gray-600">{project.description}</p>
+              <h2 className="font-bold text-lg text-foreground">{project.title}</h2>
+              <p className="text-sm text-gray-800">{project.description}</p>
             </div>
           ))}
         </div>
       )}
 
       <section className="mt-8 w-full max-w-2xl">
-        <h2 className="text-2xl font-semibold mb-4">Skills</h2>
+        <h2 className="text-2xl font-semibold mb-4 text-foreground">Skills</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {skills.map((skill) => (
-            <div key={skill.id} className="skill-card">
-              <h3 className="font-medium">{skill.name}</h3>
-              <p className="text-sm text-gray-600">{skill.level}</p>
+            <div key={skill.id} className="skill-card interactive">
+              <h3 className="font-medium text-foreground">{skill.name}</h3>
+              <p className="text-sm text-gray-800">{skill.level}</p>
             </div>
           ))}
         </div>
       </section>
 
       <section className="mt-8 w-full max-w-2xl">
-        <h2 className="text-2xl font-semibold mb-4">Contact Me</h2>
+        <h2 className="text-2xl font-semibold mb-4 text-foreground">Contact</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label htmlFor="name" className="block mb-1">
-              Name
-            </label>
+            <label className="block text-sm font-medium text-foreground mb-1">Name</label>
             <input
               type="text"
-              id="name"
               name="name"
               value={form.name}
               onChange={handleChange}
@@ -134,12 +131,9 @@ export default function Home() {
             {errors.name && <p className="error-msg">{errors.name}</p>}
           </div>
           <div>
-            <label htmlFor="email" className="block mb-1">
-              Email
-            </label>
+            <label className="block text-sm font-medium text-foreground mb-1">Email</label>
             <input
               type="email"
-              id="email"
               name="email"
               value={form.email}
               onChange={handleChange}
@@ -148,20 +142,20 @@ export default function Home() {
             {errors.email && <p className="error-msg">{errors.email}</p>}
           </div>
           <div>
-            <label htmlFor="message" className="block mb-1">
-              Message
-            </label>
+            <label className="block text-sm font-medium text-foreground mb-1">Message</label>
             <textarea
-              id="message"
               name="message"
-              rows="4"
               value={form.message}
               onChange={handleChange}
               className="contact-input"
+              rows="5"
             />
             {errors.message && <p className="error-msg">{errors.message}</p>}
           </div>
-          <button type="submit" className="btn btn-primary">
+          <button
+            type="submit"
+            className="px-4 py-2 bg-primary text-white rounded cursor-pointer transition-all interactive"
+          >
             Send Message
           </button>
         </form>

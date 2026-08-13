@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fafafa;
+  --foreground: #111;
   --primary: #1d4ed8;
   --primary-hover: #1e40af;
   --secondary: #6b7280;
@@ -37,6 +37,16 @@ body {
   transition-duration: 300ms;
 }
 
+/* Interactive class for hover/scale effects */
+.interactive {
+  transition: transform 0.2s ease, background-color 0.2s;
+}
+
+.interactive:hover {
+  transform: scale(1.05);
+  background-color: var(--primary);
+}
+
 /* Button styles */
 .btn {
   padding: 0.5rem 1rem;
@@ -59,6 +69,29 @@ body {
   background: var(--accent);
 }
 
+/* Link styles */
+.link {
+  color: var(--primary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.link:hover {
+  color: var(--primary-hover);
+}
+
+/* Card styles */
+.card {
+  background: var(--background);
+  border: 1px solid var(--foreground);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s;
+}
+.card:hover {
+  transform: scale(1.05);
+}
+
 /* Skill card */
 .skill-card {
   background: var(--background);
@@ -72,7 +105,7 @@ body {
   transform: scale(1.05);
 }
 
-/* Contact form */
+/* Contact input */
 .contact-input {
   border: 1px solid var(--foreground);
   padding: 0.5rem;
@@ -80,7 +113,7 @@ body {
   width: 100%;
 }
 .error-msg {
-  color: red;
+  color: #dc2626;
   font-size: 0.875rem;
 }
 
@@ -108,15 +141,15 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  background-color: #fafafa;
+  background-color: var(--background);
 }
 .name {
   font-size: 3rem;
   font-weight: 700;
-  color: #111;
+  color: var(--foreground);
   margin-bottom: 0.5rem;
 }
 .subtitle {
   font-size: 1.25rem;
-  color: #555;
+  color: var(--secondary);
 }
