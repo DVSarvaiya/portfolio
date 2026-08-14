@@ -15,6 +15,10 @@
 
 @import "tailwindcss";
 
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   --background: #fafafa;
   --foreground: #111;
@@ -141,7 +145,12 @@ body {
   animation: slideUp 0.5s ease forwards;
 }
 
-/* New styles */
+/* Gradient animated background for main container */
+@keyframes gradientAnimation {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 .main {
   min-height: 100vh;
   display: flex;
@@ -149,7 +158,9 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  background-color: var(--background);
+  background: linear-gradient(135deg, var(--background), var(--accent), var(--primary));
+  background-size: 400% 400%;
+  animation: gradientAnimation 15s ease infinite;
 }
 .name {
   font-size: 3rem;

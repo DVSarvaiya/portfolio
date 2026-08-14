@@ -35,7 +35,7 @@ export default function Home() {
     if (!form.name.trim()) newErrors.name = "Name is required.";
     if (!form.email.trim()) {
       newErrors.email = "Email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    } else if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(form.email)) {
       newErrors.email = "Email is invalid.";
     }
     if (!form.message.trim()) newErrors.message = "Message is required.";
@@ -63,48 +63,52 @@ export default function Home() {
 
   return (
     <main className="main">
-      <h1 className="name">Dhruv Sarvaiya</h1>
-      <a
-        href="https://www.linkedin.com/in/dvsarvaiya"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn btn-primary interactive"
-      >
-        LinkedIn
-      </a>
-      <p className="subtitle">Portfolio • Developer</p>
-      <a
-        href="https://github.com/DVSarvaiya"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn btn-secondary mt-2 interactive"
-      >
-        GitHub
-      </a>
+      <div className="fade-in">
+        <h1 className="name">Dhruv Sarvaiya</h1>
+        <a
+          href="https://www.linkedin.com/in/dvsarvaiya"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-primary interactive"
+        >
+          LinkedIn
+        </a>
+        <p className="subtitle">Portfolio • Developer</p>
+        <a
+          href="https://github.com/DVSarvaiya"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-secondary mt-2 interactive"
+        >
+          GitHub
+        </a>
+      </div>
 
-      <button
-        type="button"
-        onClick={() => setShowProjects((prev) => !prev)}
-        className="mt-4 px-4 py-2 bg-green-500 text-white rounded transition-all interactive"
-      >
-        {showProjects ? "Hide Projects" : "Show Projects"}
-      </button>
+      <div className="slide-up">
+        <button
+          type="button"
+          onClick={() => setShowProjects((prev) => !prev)}
+          className="mt-4 px-4 py-2 bg-green-500 text-white rounded transition-all interactive"
+        >
+          {showProjects ? "Hide Projects" : "Show Projects"}
+        </button>
 
-      {showProjects && (
-        <div className="mt-4 flex flex-col gap-3">
-          {projects.map((project) => (
-            <div
-              key={project.id}
-              className="p-4 border rounded shadow-sm text-left card interactive"
-            >
-              <h2 className="font-bold text-lg text-foreground">{project.title}</h2>
-              <p className="text-sm text-gray-800">{project.description}</p>
-            </div>
-          ))}
-        </div>
-      )}
+        {showProjects && (
+          <div className="mt-4 flex flex-col gap-3">
+            {projects.map((project) => (
+              <div
+                key={project.id}
+                className="p-4 border rounded shadow-sm text-left card interactive"
+              >
+                <h2 className="font-bold text-lg text-foreground">{project.title}</h2>
+                <p className="text-sm text-gray-800">{project.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-      <section className="mt-8 w-full max-w-2xl">
+      <section className="mt-8 w-full max-w-2xl slide-up">
         <h2 className="text-2xl font-semibold mb-4 text-foreground">Skills</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {skills.map((skill) => (
@@ -116,7 +120,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mt-8 w-full max-w-2xl">
+      <section className="mt-8 w-full max-w-2xl slide-up">
         <h2 className="text-2xl font-semibold mb-4 text-foreground">Contact</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
