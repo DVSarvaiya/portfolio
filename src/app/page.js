@@ -108,61 +108,14 @@ export default function Home() {
         )}
       </div>
 
-      <section className="mt-8 w-full max-w-2xl slide-up">
-        <h2 className="text-2xl font-semibold mb-4 text-foreground">Skills</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {skills.map((skill) => (
-            <div key={skill.id} className="skill-card interactive">
-              <h3 className="font-medium text-foreground">{skill.name}</h3>
-              <p className="text-sm text-gray-800">{skill.level}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-8 w-full max-w-2xl slide-up">
-        <h2 className="text-2xl font-semibold mb-4 text-foreground">Contact</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Name</label>
-            <input
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              className="contact-input"
-            />
-            {errors.name && <p className="error-msg">{errors.name}</p>}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
+        {Array.from({length: 3}, (_, i) => (
+          <div key={i} className="card bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow">
+            <img src="https://via.placeholder.com/400x250?text=Project+1" alt="Project 1" className="card-img w-full" />
+            <h3 className="card-title text-xl font-semibold p-4">Project Title 1</h3>
+            <p className="card-desc text-gray-600 p-4">Brief description of the project...</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              className="contact-input"
-            />
-            {errors.email && <p className="error-msg">{errors.email}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Message</label>
-            <textarea
-              name="message"
-              value={form.message}
-              onChange={handleChange}
-              className="contact-input"
-              rows="5"
-            />
-            {errors.message && <p className="error-msg">{errors.message}</p>}
-          </div>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-primary text-white rounded cursor-pointer transition-all interactive"
-          >
-            Send Message
-          </button>
-        </form>
+        ))}
       </section>
     </main>
   );
