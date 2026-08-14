@@ -53,9 +53,35 @@ Start your response with "GOAL:" immediately. No thinking or analysis."""
         result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
         result = re.sub(r"(?i)^.*?here'?s?\s+(a\s+)?thinking.*?:\s*", '', result, flags=re.DOTALL)
 
-        # Extract from "GOAL:" onwards if there's preamble
-        goal_match = re.search(r'(GOAL:.*)', result, re.DOTALL)
-        if goal_match:
-            result = goal_match.group(1)
+        # Extract structured sections individually instead of taking everything after GOAL:
+        goal_match = re.search(r'GOAL:\s*(.+?)(?:\n|$)', result)
+        file_match = re.search(r'FILE(?:S)?\s+TO\s+MODIFY:\s*\n((?:\s*-\s+.+\n?)+)', result, re.IGNORECASE)
+        details_match = re.search(r'DETAILS:\s*\n((?:.+\n?){1,5})', result, re.IGNORECASE)
+
+        # If we found structured sections, reconstruct a clean plan
+        if goal_match and file_match:
+            goal = goal_match.group(1).strip().rstrip('"').strip()
+            # If the goal is garbage (too short or just punctuation), use a generic one
+            if len(goal) < 10 or not any(c.isalpha() for c in goal):
+                goal = "Improve the portfolio UI based on user feedback"
+            
+            files = file_match.group(1).strip()
+            details = details_match.group(1).strip() if details_match else "Implement the changes described above."
+            
+            result = f"GOAL: {goal}\n\nFILE TO MODIFY:\n{files}\n\nDETAILS:\n{details}"
+        else:
+            # Fallback: try to extract from "GOAL:" but limit to first 500 chars
+            goal_pos = result.find("GOAL:")
+            if goal_pos >= 0:
+                result = result[goal_pos:goal_pos + 500]
+            else:
+                # Last resort: generate a minimal plan
+                result = f"""GOAL: Improve the portfolio UI based on user feedback
+
+FILE TO MODIFY:
+- src/app/page.js: Update the page component based on user feedback
+
+DETAILS:
+Implement the user's requested changes to src/app/page.js while preserving existing functionality."""
 
         return result.strip()

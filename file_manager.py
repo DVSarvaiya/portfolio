@@ -31,11 +31,14 @@ class FileManager:
             "node_modules",
             ".git",
             ".next",
+            "out",
             "logs",
             "venv",
             "__pycache__",
             "patches",
-            "plans"
+            "plans",
+            "prompts",
+            ".github",
         }
 
         ignored_files = {
