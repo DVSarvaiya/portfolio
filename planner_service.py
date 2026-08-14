@@ -12,18 +12,22 @@ You MUST respond in this EXACT format and nothing else:
 
 GOAL: [one sentence describing what needs to change]
 
-FILES TO MODIFY:
-- [filepath]: [what to change in this file]
-- [filepath]: [what to change in this file]
+FILE TO MODIFY:
+- [ONE filepath]: [what to change in this file]
 
 DETAILS:
 [2-3 sentences explaining the specific code changes needed]
 
 RULES:
+- Modify EXACTLY ONE file per plan. Pick the most important file to change.
 - Only reference files that exist in the project file list.
 - Be specific about what code to add, remove, or change.
 - Keep changes minimal and focused on the feedback.
-- Do NOT suggest creating new component files unless absolutely necessary.
+- Do NOT suggest installing new npm packages. Only use: react, react-dom, next, tailwindcss.
+- Do NOT suggest framer-motion, three.js, lucide-react, react-icons, or any other package.
+- Use plain CSS and inline styles for animations, not external animation libraries.
+- This project uses Tailwind CSS v4. NEVER use @apply in CSS files — it causes build errors.
+- Do NOT suggest creating new component files.
 - Do NOT output any thinking, reasoning, or analysis before the plan.
 """
 
