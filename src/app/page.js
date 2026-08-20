@@ -5,6 +5,11 @@ import { useState, useEffect } from "react";
 export default function Home() {
   const [showProjects, setShowProjects] = useState(false);
   const [activeTab, setActiveTab] = useState("projects");
+  const [touched, setTouched] = useState({
+    name: false,
+    email: false,
+    message: false,
+  });
 
   const projects = [
     { id: 1, title: "Project One", description: "A React-based portfolio site with modern design and smooth animations." },
@@ -45,7 +50,7 @@ export default function Home() {
     if (!form.name.trim()) newErrors.name = "Name is required.";
     if (!form.email.trim()) {
       newErrors.email = "Email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
       newErrors.email = "Email is invalid.";
     }
     if (!form.message.trim()) newErrors.message = "Message is required.";
@@ -53,13 +58,42 @@ export default function Home() {
     return !newErrors.name && !newErrors.email && !newErrors.message;
   };
 
-  useEffect(() => {
-    validate();
-  }, [form]);
+  const validateField = (fieldName) => {
+    let error = "";
+    const value = form[fieldName];
+    switch (fieldName) {
+      case "name":
+        if (!value.trim()) error = "Name is required.";
+        break;
+      case "email":
+        if (!value.trim()) {
+          error = "Email is required.";
+        } else if (!/^\S+@\S+\.\S+$/.test(value)) {
+          error = "Email is invalid.";
+        }
+        break;
+      case "message":
+        if (!value.trim()) error = "Message is required.";
+        break;
+      default:
+        break;
+    }
+    setErrors((prev) => ({ ...prev, [fieldName]: error }));
+    return error === "";
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (touched[name]) {
+      validateField(name);
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    validateField(name);
   };
 
   const handleSubmit = (e) => {
@@ -68,6 +102,7 @@ export default function Home() {
       setSubmitStatus("success");
       console.log("Form submitted:", form);
       setForm({ name: "", email: "", message: "" });
+      setTouched({ name: false, email: false, message: false });
       setTimeout(() => setSubmitStatus(null), 3000);
     } else {
       setSubmitStatus("error");
@@ -83,8 +118,6 @@ export default function Home() {
       default: return "bg-gray-500";
     }
   };
-
-  const filteredProjects = projects;
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -166,9 +199,42 @@ export default function Home() {
             </button>
           </div>
 
-          {showProjects && (
+          {showProjects ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map((project) => (
+              {projects.map((project) => (
+                <article
+                  key={project.id}
+                  className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                >
+                  <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5 relative overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-primary/50 text-2xl font-medium">{project.title}</span>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </div>
+                  <div className="p-5">
+                    <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                      {project.title}
+                    </h3>
+                    <p className="text-sm text-secondary line-clamp-2">{project.description}</p>
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                      <span className="text-xs text-secondary">View Details</span>
+                      <svg
+                        className="w-5 h-5 text-secondary group-hover:text-primary transition-colors transform group-hover:translate-x-1"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {projects.slice(0, 3).map((project) => (
                 <article
                   key={project.id}
                   className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
@@ -272,6 +338,7 @@ export default function Home() {
                   name="name"
                   value={form.name}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   className={`w-full px-4 py-3 rounded-xl border transition-colors ${
                     errors.name
                       ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-500"
@@ -297,6 +364,7 @@ export default function Home() {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   className={`w-full px-4 py-3 rounded-xl border transition-colors ${
                     errors.email
                       ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-500"
@@ -321,6 +389,7 @@ export default function Home() {
                   name="message"
                   value={form.message}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   rows={5}
                   className={`w-full px-4 py-3 rounded-xl border transition-colors resize-y min-h-[120px] ${
                     errors.message
