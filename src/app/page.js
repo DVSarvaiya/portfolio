@@ -11,6 +11,25 @@ export default function Home() {
     email: false,
     message: false,
   });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileImgError, setProfileImgError] = useState(false);
+  const [heroParticles, setHeroParticles] = useState([]);
+  const canvasRef = useRef(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const form = {
+    name: "",
+    email: "",
+    message: "",
+  };
+
+  const [formData, setForm] = useState(form);
+  const [errors, setErrors] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [submitStatus, setSubmitStatus] = useState(null);
 
   const projects = [
     { id: 1, title: "Project One", description: "A React-based portfolio site with modern design and smooth animations." },
@@ -32,47 +51,23 @@ export default function Home() {
     { id: 8, name: "Docker", level: "Intermediate", category: "devops" },
   ];
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    message: "",
-  });
-
-  const [errors, setErrors] = useState({
-    name: "",
-    email: "",
-    message: "",
-  });
-
-  const [submitStatus, setSubmitStatus] = useState(null);
-
-  // New state for hero section
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [typing, setTyping] = useState({
-    str: "",
-    index: 0,
-    isDeleting: false,
-    speed: 150,
-  });
-  const canvasRef = useRef(null);
-
   // Existing form handlers
   const validate = () => {
     const newErrors = { name: "", email: "", message: "" };
-    if (!form.name.trim()) newErrors.name = "Name is required.";
-    if (!form.email.trim()) {
+    if (!formData.name.trim()) newErrors.name = "Name is required.";
+    if (!formData.email.trim()) {
       newErrors.email = "Email is required.";
-    } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
       newErrors.email = "Email is invalid.";
     }
-    if (!form.message.trim()) newErrors.message = "Message is required.";
+    if (!formData.message.trim()) newErrors.message = "Message is required.";
     setErrors(newErrors);
     return !newErrors.name && !newErrors.email && !newErrors.message;
   };
 
   const validateField = (fieldName) => {
     let error = "";
-    const value = form[fieldName];
+    const value = formData[fieldName];
     switch (fieldName) {
       case "name":
         if (!value.trim()) error = "Name is required.";
@@ -112,7 +107,7 @@ export default function Home() {
     e.preventDefault();
     if (validate()) {
       setSubmitStatus("success");
-      console.log("Form submitted:", form);
+      console.log("Form submitted:", formData);
       setForm({ name: "", email: "", message: "" });
       setTouched({ name: false, email: false, message: false });
       setTimeout(() => setSubmitStatus(null), 3000);
@@ -139,6 +134,13 @@ export default function Home() {
     "Tech Enthusiast",
   ];
 
+  const [typing, setTyping] = useState({
+    str: "",
+    index: 0,
+    isDeleting: false,
+    speed: 150,
+  });
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       setTyping((prev) => {
@@ -149,11 +151,9 @@ export default function Home() {
         let newSpeed;
 
         if (!prev.isDeleting) {
-          // Typing
           newStr = currentString.substring(0, prev.str.length + 1);
           newSpeed = 150;
           if (newStr.length === currentString.length) {
-            // Switch to deleting after a pause
             newIsDeleting = true;
             newSpeed = 2000;
           } else {
@@ -161,11 +161,9 @@ export default function Home() {
           }
           newIndex = prev.index;
         } else {
-          // Deleting
           newStr = currentString.substring(0, prev.str.length - 1);
           newSpeed = 80;
           if (newStr.length === 0) {
-            // Move to next string
             newIsDeleting = false;
             newIndex = (prev.index + 1) % typingStrings.length;
           } else {
@@ -224,7 +222,6 @@ export default function Home() {
         ctx.fillStyle = p.color;
         ctx.fill();
 
-        // Connect nearby particles
         for (let j = i + 1; j < particles.length; j++) {
           const p2 = particles[j];
           const dx = p.x - p2.x;
@@ -252,6 +249,36 @@ export default function Home() {
     };
   }, []);
 
+  // Generate CSS-based hero particles on mount
+  useEffect(() => {
+    const particlesArray = [];
+    const sizes = [8, 10, 12, 14, 16, 20, 24];
+    for (let i = 0; i < 30; i++) {
+      particlesArray.push({
+        id: i,
+        size: sizes[Math.floor(Math.random() * sizes.length)],
+        top: `${Math.random() * 90 + 5}%`,
+        left: `${Math.random() * 90 + 5}%`,
+        opacity: Math.random() * 0.25 + 0.05,
+        animationDelay: `${Math.random() * 4}s`,
+        animationDuration: `${Math.random() * 6 + 5}s`,
+      });
+    }
+    setHeroParticles(particlesArray);
+  }, []);
+
+  // Track mouse position for interactive glow
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePos({
+        x: e.clientX,
+        y: e.clientY,
+      });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
   const toggleMobileMenu = () => {
     setMobileMenuOpen((prev) => !prev);
   };
@@ -260,26 +287,61 @@ export default function Home() {
     setMobileMenuOpen(false);
   };
 
+  // nav links config
+  const navLinks = [
+    { name: "About", href: "#about" },
+    { name: "Projects", href: "#projects" },
+    { name: "Skills", href: "#skills" },
+    { name: "Contact", href: "#contact" },
+  ];
+
+  const socialLinks = [
+    { name: "LinkedIn", href: "https://www.linkedin.com/in/dvsarvaiya", icon: (size = "w-4 h-4") => (
+      <path d="M20.447 20.447h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.562h.046c.477-.903 1.637-1.852 3.37-1.852 3.601 0 4.267 2.37 4.267 5.453v6.284zM5.337 7.433a2.065 2.065 0 01-2.067 2.067 2.065 2.065 0 012.067-2.067zm0 16.074H1.27V7.433h4.067v16.074zM22.225 1.247H1.771C.792 1.247 0 2.039 0 3.016v18.968C0 21.961.792 22.75 1.771 22.75h20.454c.979 0 1.77-.789 1.77-1.766V3.016c0-.977-.791-1.769-1.77-1.769z" />
+    ) },
+    { name: "GitHub", href: "https://github.com/DVSarvaiya", icon: (size = "W-4 h-4") => (
+      <path d="M12 .001c-6.627 0-12 5.373-12 12 0 5.303 3.438 9.8 8.207 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.73.083-.73 1.205.085 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.762-1.604-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.627-5.373-12-12-12z" />
+    ) },
+  ];
+
+  const renderSocialIcon = (link) => (
+    <a
+      key={link.name}
+      href={link.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-primary/20 border border-white/10 hover:border-primary/50 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5 group"
+      aria-label={link.name}
+    >
+      <svg className="w-4 h-4 text-foreground/80 group-hover:text-primary transition-colors" fill="currentColor" viewBox="0 0 24 24">
+        {link.icon()}
+      </svg>
+    </a>
+  );
+
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="relative min-h-screen bg-background text-foreground">
       {/* Sticky Glass Navbar */}
-      <nav className="sticky top-0 z-50 glassmorphism border-b border-white/10">
+      <nav className="fixed top-0 w-full z-50 bg-white/5 border-b border-gray-800/30 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <a href="#home" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+            <a
+              href="#about"
+              className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent"
+            >
               Dhruv Sarvaiya
             </a>
 
             {/* Desktop Nav Links */}
             <div className="hidden md:flex space-x-8">
-              {["About", "Projects", "Skills", "Contact"].map((item) => (
+              {navLinks.map((link) => (
                 <a
-                  key={item}
-                  href={`#${item.toLowerCase()}`}
+                  key={link.name}
+                  href={link.href}
                   className="relative text-sm font-medium text-foreground/80 hover:text-foreground transition-colors group"
                 >
-                  {item}
+                  {link.name}
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:w-full"></span>
                 </a>
               ))}
@@ -287,126 +349,169 @@ export default function Home() {
 
             {/* Social Icons (Desktop) */}
             <div className="hidden md:flex space-x-4">
-              <a
-                href="https://www.linkedin.com/in/dvsarvaiya"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-primary/20 border border-white/10 hover:border-primary/50 transition-all duration-300 hover:-translate-y-0.5"
-                aria-label="LinkedIn"
-              >
-                <svg className="w-4 h-4 text-foreground/80" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.447 20.447h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.562h.046c.477-.903 1.637-1.852 3.37-1.852 3.601 0 4.267 2.37 4.267 5.453v6.284zM5.337 7.433a2.065 2.065 0 01-2.067 2.067 2.065 2.065 0 012.067-2.067zm0 16.074H1.27V7.433h4.067v16.074zM22.225 1.247H1.771C.792 1.247 0 2.039 0 3.016v18.968C0 21.961.792 22.75 1.771 22.75h20.454c.979 0 1.77-.789 1.77-1.766V3.016c0-.977-.791-1.769-1.77-1.769z" />
-                </svg>
-              </a>
-              <a
-                href="https://github.com/DVSarvaiya"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-primary/20 border border-white/10 hover:border-primary/50 transition-all duration-300 hover:-translate-y-0.5"
-                aria-label="GitHub"
-              >
-                <svg className="w-4 h-4 text-foreground/80" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 .001c-6.627 0-12 5.373-12 12 0 5.303 3.438 9.8 8.207 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.73.083-.73 1.205.085 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.762-1.604-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.627-5.373-12-12-12z" />
-                </svg>
-              </a>
+              {socialLinks.map(renderSocialIcon)}
             </div>
 
-            {/* Mobile Menu Button */}
+            {/* Mobile Hamburger Button */}
             <button
               onClick={toggleMobileMenu}
               className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 hover:bg-primary/20 transition-colors"
               aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
             >
-              <svg
-                className={`w-5 h-5 text-foreground transition-transform duration-300 ${mobileMenuOpen ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              <span
+                className={`block w-5 h-0.5 bg-foreground transition-all duration-300 ${
+                  mobileMenuOpen ? "rotate-45 translate-y-1" : ""
+                }`}
+              ></span>
+              <span
+                className={`block w-5 h-0.5 bg-foreground transition-all duration-300 ${
+                  mobileMenuOpen ? "opacity-0" : ""
+                }`}
+              ></span>
+              <span
+                className={`block w-5 h-0.5 bg-foreground transition-all duration-300 ${
+                  mobileMenuOpen ? "-rotate-45 -translate-y-1" : ""
+                }`}
+              ></span>
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - slide down with fade-in */}
         <div
           className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-            mobileMenuOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"
+            mobileMenuOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0 pointer-events-none"
           }`}
         >
           <div className="px-4 pb-4 space-y-3 bg-black/60 backdrop-blur-xl border-t border-white/10">
-            {["About", "Projects", "Skills", "Contact"].map((item) => (
+            {navLinks.map((link) => (
               <a
-                key={item}
-                href={`#${item.toLowerCase()}`}
+                key={link.name}
+                href={link.href}
                 onClick={closeMobileMenu}
                 className="block text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
               >
-                {item}
+                {link.name}
               </a>
             ))}
             <div className="flex space-x-4 pt-2">
-              <a
-                href="https://www.linkedin.com/in/dvsarvaiya"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10"
-              >
-                <svg className="w-4 h-4 text-foreground/80" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.447 20.447h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.562h.046c.477-.903 1.637-1.852 3.37-1.852 3.601 0 4.267 2.37 4.267 5.453v6.284zM5.337 7.433a2.065 2.065 0 01-2.067 2.067 2.065 2.065 0 012.067-2.067zm0 16.074H1.27V7.433h4.067v16.074zM22.225 1.247H1.771C.792 1.247 0 2.039 0 3.016v18.968C0 21.961.792 22.75 1.771 22.75h20.454c.979 0 1.77-.789 1.77-1.766V3.016c0-.977-.791-1.769-1.77-1.769z" />
-                </svg>
-              </a>
-              <a
-                href="https://github.com/DVSarvaiya"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10"
-              >
-                <svg className="w-4 h-4 text-foreground/80" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 .001c-6.627 0-12 5.373-12 12 0 5.303 3.438 9.8 8.207 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.73.083-.73 1.205.085 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.762-1.604-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.627-5.373-12-12-12z" />
-                </svg>
-              </a>
+              {socialLinks.map(renderSocialIcon)}
             </div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section id="about" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section
+        id="about"
+        className="relative h-screen bg-gradient-to-br from-[#050505] to-slate-900 overflow-hidden"
+      >
         {/* Canvas Background */}
         <canvas
           ref={canvasRef}
           className="absolute inset-0 z-0"
-          style={{ background: "radial-gradient(circle at 50% 50%, rgba(15,15,20,1) 0%, rgba(5,5,5,1) 100%)" }}
+          style={{
+            background:
+              "radial-gradient(circle at 50% 50%, rgba(15,15,20,1) 0%, rgba(5,5,5,1) 100%)",
+          }}
+        />
+
+        {/* CSS-based Particle Background */}
+        {heroParticles.map((p) => (
+          <div
+            key={p.id}
+            className="absolute rounded-full bg-white animate-pulse"
+            style={{
+              width: `${p.size}px`,
+              height: `${p.size}px`,
+              top: p.top,
+              left: p.left,
+              opacity: p.opacity,
+              animationDelay: p.animationDelay,
+              animationDuration: p.animationDuration,
+              backgroundColor: p.color,
+            }}
+          />
+        ))}
+
+        {/* Interactive glow following mouse */}
+        <div
+          className="absolute z-0 pointer-events-none"
+          style={{
+            width: "400px",
+            height: "400px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
+            transform: `translate(${mousePos.x - 200}px, ${mousePos.y - 200}px)`,
+            transition: "transform 0.1s ease-out",
+            filter: "blur(40px)",
+          }}
         />
 
         {/* Floating Glowing Elements */}
-        <div
-          className="absolute top-20 left-10 w-72 h-72 rounded-full bg-primary/20 blur-3xl opacity-30 animate-float"
-          style={{ animationDelay: "0s", animationDuration: "8s" }}
-        />
-        <div
-          className="absolute bottom-32 right-20 w-96 h-96 rounded-full bg-accent/20 blur-3xl opacity-20 animate-float"
-          style={{ animationDelay: "2s", animationDuration: "10s" }}
-        />
-        <div
-          className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full bg-primary/60 blur-sm opacity-70 animate-pulse-slow"
-          style={{ animationDelay: "1s" }}
-        />
+        <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-primary/20 blur-3xl opacity-30 animate-float" style={{ animationDelay: "0s", animationDuration: "8s" }} />
+        <div className="absolute bottom-32 right-20 w-96 h-96 rounded-full bg-accent/20 blur-3xl opacity-20 animate-float" style={{ animationDelay: "2s", animationDuration: "10s" }} />
+
+        {/* Floating SVG glowing circles */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" style={{ overflow: "visible" }}>
+          <circle
+            className="animate-pulse-slow"
+            cx="20%"
+            cy="30%"
+            r="60"
+            fill="none"
+            stroke="rgba(59,130,246,0.3)"
+            strokeWidth="1.5"
+            style={{ animationDelay: "0s", animationDuration: "12s" }}
+          />
+          <circle
+            className="animate-pulse-slow"
+            cx="80%"
+            cy="70%"
+            r="40"
+            fill="none"
+            stroke="rgba(167,139,250,0.25)"
+            strokeWidth="1.5"
+            style={{ animationDelay: "3s", animationDuration: "10s" }}
+          />
+          <circle
+            className="animate-pulse-slow"
+            cx="50%"
+            cy="50%"
+            r="120"
+            fill="none"
+            stroke="rgba(59,130,246,0.15)"
+            strokeWidth="1"
+            style={{ animationDelay: "1s" }}
+          />
+        </svg>
 
         {/* Hero Content */}
-        <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8">
           {/* Profile Image with Glowing Ring */}
-          <div className="relative inline-block mb-8">
-            <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full border-4 border-gradient-to-r from-primary to-accent shadow-[0_0_40px_rgba(59,130,246,0.5)] animate-pulse-slow overflow-hidden bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
-              <span className="text-5xl sm:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-                DS
-              </span>
+          <div className="relative flex items-center justify-center py-20">
+            <div className="relative">
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 blur-xl opacity-50 animate-pulse-slow"></div>
+              <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-primary via-accent to-primary opacity-20 blur-2xl animate-spin-slow"></div>
+              {profileImgError ? (
+                <span className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-2 border-gradient-to-r from-primary to-accent shadow-xl flex items-center justify-center bg-gradient-to-br from-primary/30 to-accent/30 text-5xl sm:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+                  DS
+                </span>
+              ) : (
+                <img
+                  src="/profile.jpg"
+                  alt="Dhruv"
+                  onError={() => setProfileImgError(true)}
+                  className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover border-2 border-transparent shadow-xl"
+                />
+              )}
             </div>
-            {/* Floating Badge */}
-            <div className="absolute -bottom-2 -right-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full px-3 py-1.5 flex items-center space-x-1.5 animate-bounce-slow">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+
+            {/* Floating Availability Badge */}
+            <div className="absolute -bottom-3 -right-3 bg-black/60 backdrop-blur-md border border-white/10 rounded-full px-3 py-1.5 flex items-center space-x-1.5 animate-bounce-slow">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="text-xs font-medium text-foreground/90">Available</span>
             </div>
           </div>
@@ -416,26 +521,37 @@ export default function Home() {
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary bg-size-200 animate-gradient-shift">
               {typing.str}
             </span>
-            <span className="inline-block w-0.5 h-[1.2em] bg-primary ml-1 animate-blink" />
+            <span className="inline-block w-0.5 h-[1.2em] bg-gradient-to-b from-primary to-accent ml-1 animate-blink"></span>
           </h1>
 
           <p className="text-lg sm:text-xl text-muted max-w-2xl mx-auto mb-10 leading-relaxed">
-            Crafting elegant digital experiences with modern technologies and pixel-perfect design.
+            Crafting elegant digital experiences with modern technologies and
+            pixel-perfect design.
           </p>
 
-          {/* Dual CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <a
               href="#contact"
               className="group relative px-8 py-4 bg-gradient-to-r from-primary to-accent text-white font-medium rounded-full overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:-translate-y-0.5 active:translate-y-0"
             >
               <span className="relative z-10 flex items-center space-x-2">
                 <span>Get In Touch</span>
-                <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 19l2-2-2-2M17 5l2 2-2 2M19 12H5" />
+                <svg
+                  className="w-4 h-4 transition-transform group-hover:translate-x-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 19l2-2-2-2M17 5l2 2-2 2M19 12H5"
+                  />
                 </svg>
               </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-r from-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </a>
             <a
               href="#projects"
@@ -443,12 +559,45 @@ export default function Home() {
             >
               <span className="relative z-10 flex items-center space-x-2">
                 <span>View My Work</span>
-                <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 19l2-2-2-2M17 5l2 2-2 2M19 12H5" />
+                <svg
+                  className="w-4 h-4 transition-transform group-hover:translate-x-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 19l2-2-2-2M17 5l2 2-2 2M19 12H5"
+                  />
                 </svg>
               </span>
-              <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </a>
+          </div>
+
+          {/* Social Icons with Hover Effects */}
+          <div className="flex items-center space-x-5 mb-12">
+            {socialLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative w-11 h-11 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:border-primary/50 hover:bg-primary/10 transition-all duration-300 hover:scale-110"
+                aria-label={link.name}
+              >
+                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-30 blur transition-opacity duration-300"></span>
+                <svg
+                  className="relative w-5 h-5 text-foreground/70 group-hover:text-primary transition-all duration-300 group-hover:scale-110"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  {link.icon()}
+                </svg>
+              </a>
+            ))}
           </div>
 
           {/* Smooth Scroll Indicator */}
@@ -466,7 +615,7 @@ export default function Home() {
       {/* Content Sections Wrapper */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
         {/* Tab Navigation */}
-        <nav className="mb-10 animate-slide-up" style={{ animationDelay: '100ms' }}>
+        <nav className="mb-10 animate-slide-up" style={{ animationDelay: "100ms" }}>
           <div className="flex gap-2 bg-black/40 backdrop-blur-md border border-white/10 p-1 rounded-xl w-fit">
             <button
               onClick={() => setActiveTab("projects")}
@@ -502,7 +651,7 @@ export default function Home() {
         </nav>
 
         {/* Projects Section */}
-        <section id="projects" className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <section id="projects" className="animate-slide-up" style={{ animationDelay: "200ms" }}>
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Featured Projects</h2>
             <button
@@ -518,7 +667,7 @@ export default function Home() {
               {projects.map((project) => (
                 <article
                   key={project.id}
-                  className="group glassmorphism border border-white/10 rounded-2xl overflow-hidden shadow-card hover:shadow-glow transition-all duration-300 hover:-translate-y-1"
+                  className="group glassmorphism border border-white/10 rounded-2xl overflow-hidden shadow-card hover:shadow-glass transition-all duration-300 hover:-translate-y-1"
                 >
                   <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 relative overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -551,7 +700,7 @@ export default function Home() {
               {projects.slice(0, 3).map((project) => (
                 <article
                   key={project.id}
-                  className="group glassmorphism border border-white/10 rounded-2xl overflow-hidden shadow-card hover:shadow-glow transition-all duration-300 hover:-translate-y-1"
+                  className="group glassmorphism border border-white/10 rounded-2xl overflow-hidden shadow-card hover:shadow-glass transition-all duration-300 hover:-translate-y-1"
                 >
                   <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 relative overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -583,7 +732,7 @@ export default function Home() {
         </section>
 
         {/* Skills Section */}
-        <section id="skills" className="mt-16 animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <section id="skills" className="mt-16 animate-slide-up" style={{ animationDelay: "200ms" }}>
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-8">Technical Skills</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {["frontend", "backend", "devops"].map((category) => {
@@ -595,7 +744,10 @@ export default function Home() {
                 devops: "DevOps",
               };
               return (
-                <div key={category} className="glassmorphism border border-white/10 rounded-2xl p-6 hover:shadow-glow transition-all duration-300">
+                <div
+                  key={category}
+                  className="glassmorphism border border-white/10 rounded-2xl p-6 hover:shadow-glass transition-all duration-300"
+                >
                   <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-4">
                     {categoryLabels[category]}
                   </h3>
@@ -629,9 +781,12 @@ export default function Home() {
         </section>
 
         {/* Contact Section */}
-        <section id="contact" className="mt-16 animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <section id="contact" className="mt-16 animate-slide-up" style={{ animationDelay: "200ms" }}>
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-8">Get In Touch</h2>
-          <form onSubmit={handleSubmit} className="max-w-xl mx-auto glassmorphism border border-white/10 rounded-2xl p-6 sm:p-8 shadow-card">
+          <form
+            onSubmit={handleSubmit}
+            className="max-w-xl mx-auto glassmorphism border border-white/10 rounded-2xl p-6 sm:p-8 shadow-card"
+          >
             {submitStatus === "success" && (
               <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-200 animate-fade-in">
                 <p className="font-medium">Message sent successfully!</p>
@@ -652,7 +807,7 @@ export default function Home() {
                   type="text"
                   id="name"
                   name="name"
-                  value={form.name}
+                  value={formData.name}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={`w-full px-4 py-3 rounded-xl border transition-colors bg-black/40 backdrop-blur-sm ${
@@ -678,7 +833,7 @@ export default function Home() {
                   type="email"
                   id="email"
                   name="email"
-                  value={form.email}
+                  value={formData.email}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={`w-full px-4 py-3 rounded-xl border transition-colors bg-black/40 backdrop-blur-sm ${
@@ -703,7 +858,7 @@ export default function Home() {
                 <textarea
                   id="message"
                   name="message"
-                  value={form.message}
+                  value={formData.message}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   rows={5}
@@ -733,9 +888,9 @@ export default function Home() {
         </section>
 
         {/* Footer */}
-        <footer className="mt-16 pt-8 border-t border-white/10 animate-fade-in" style={{ animationDelay: '300ms' }}>
+        <footer className="mt-16 pt-8 border-t border-white/10 animate-fade-in" style={{ animationDelay: "300ms" }}>
           <p className="text-center text-sm text-muted">
-            Built with Next.js & Tailwind CSS • © {new Date().getFullYear()} Dhruv Sarvaiya
+            Built with Next.js &amp; Tailwind CSS • © {new Date().getFullYear()} Dhruv Sarvaiya
           </p>
         </footer>
       </div>
@@ -776,6 +931,10 @@ export default function Home() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-5px); }
         }
+        @keyframes spin-slow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
 
         .animate-float { animation: float 8s ease-in-out infinite; }
         .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
@@ -785,8 +944,15 @@ export default function Home() {
         .animate-slide-up { animation: slide-up 0.6s ease-out forwards; }
         .animate-gradient-shift { animation: gradient-shift 6s ease infinite; }
         .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
+        .animate-spin-slow { animation: spin-slow 20s linear infinite; }
 
         .bg-size-200 { background-size: 200% 200%; }
+
+        /* Custom gradient border for profile ring */
+        .border-gradient-to-r {
+          border-image: linear-gradient(to right, #3b82f6, #a78bfa, #60a5fa, #c4b5fd, #3b82f6);
+          border-image-slice: 1;
+        }
       `}}></style>
     </main>
   );
