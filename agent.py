@@ -24,7 +24,7 @@ load_dotenv()
 GH_TOKEN = os.getenv("GH_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 REPOSITORY = os.getenv("GITHUB_REPOSITORY")
-MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
+MODEL = os.getenv("OPENROUTER_MODEL", "z-ai/glm-5.2:free")
 
 MAX_PATCH_ATTEMPTS = 3
 

@@ -2,13 +2,20 @@ from openai import OpenAI
 import time
 
 
-# Verified free models from OpenRouter API (Aug 2026)
-# These have $0 prompt + $0 completion pricing
+# Free OpenRouter models, ordered by best-guess fit for code/UI generation
+# (Sep 2026) — picked from live availability + weekly-usage signals rather
+# than a network-verified benchmark (this environment can't reach
+# openrouter.ai to confirm exact slugs). A wrong/renamed slug here is
+# harmless: AIService.ask() treats a 404 as "unavailable" and moves on to
+# the next entry, so this list is safe to keep pruning/reordering over time
+# as models come and go on OpenRouter.
 FALLBACK_MODELS = [
-    "openrouter/free",                              # Smart router — free models only
-    "google/gemma-4-31b-it:free",                    # 262k ctx, 32k output
-    "nvidia/nemotron-3-super-120b-a12b:free",        # 262k ctx, 262k output
-    "nvidia/nemotron-3.5-lightning:free",             # 1M ctx, 65k output
+    "z-ai/glm-5.2:free",                    # GLM line has a strong code-gen track record
+    "minimax/minimax-m3:free",              # very high real-world usage, 1M ctx
+    "poolside/laguna-s-2.1:free",           # Poolside is a code-model-focused lab
+    "nvidia/nemotron-3.5-lightning:free",   # 1M ctx, fast, previously verified working
+    "nvidia/nemotron-3-super:free",         # large model, solid all-rounder fallback
+    "openrouter/free",                      # last-resort smart router
 ]
 
 
