@@ -3,13 +3,17 @@ import subprocess
 
 class Validator:
 
-    def run(self):
+    def run(self, timeout=600):
 
-        build = subprocess.run(
-            ["npm", "run", "build"],
-            capture_output=True,
-            text=True
-        )
+        try:
+            build = subprocess.run(
+                ["npm", "run", "build"],
+                capture_output=True,
+                text=True,
+                timeout=timeout
+            )
+        except subprocess.TimeoutExpired:
+            return False, f"Build timed out after {timeout}s — the generated code likely has an infinite loop or hang."
 
         if build.returncode != 0:
             error_output = ""

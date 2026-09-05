@@ -24,7 +24,7 @@ class AIService:
 
         self.model = model
 
-    def ask(self, prompt, system_prompt=None, retries=3, max_tokens=16384):
+    def ask(self, prompt, system_prompt=None, retries=6, max_tokens=16384):
 
         messages = []
         if system_prompt:
@@ -32,14 +32,19 @@ class AIService:
                 "role": "system",
                 "content": system_prompt
             })
-            
+
         messages.append({
             "role": "user",
             "content": prompt
         })
 
         current_model = self.model
-        fallback_index = 0
+        # Models we've already tried this call, so we never retry one we
+        # know is unavailable and never get stuck looping the same model.
+        tried_models = {current_model}
+        remaining_fallbacks = [m for m in FALLBACK_MODELS if m not in tried_models]
+
+        last_error = None
 
         for attempt in range(1, retries + 1):
             try:
@@ -49,10 +54,16 @@ class AIService:
                     max_tokens=max_tokens
                 )
                 content = response.choices[0].message.content
+
+                if not content or not content.strip():
+                    raise Exception("Model returned an empty response.")
+
                 if "User Safety: safe" in content:
                     raise Exception("OpenRouter safety filter triggered.")
+
                 return content
             except Exception as e:
+                last_error = e
                 error_str = str(e)
                 is_model_error = (
                     "404" in error_str
@@ -61,26 +72,19 @@ class AIService:
                     or "requires more credits" in error_str.lower()
                 )
 
-                # If model is unavailable or costs money, try next fallback
-                if is_model_error and fallback_index < len(FALLBACK_MODELS):
-                    next_model = FALLBACK_MODELS[fallback_index]
-                    fallback_index += 1
-                    # Skip if we're already using this model
-                    if next_model == current_model:
-                        if fallback_index < len(FALLBACK_MODELS):
-                            next_model = FALLBACK_MODELS[fallback_index]
-                            fallback_index += 1
-                        else:
-                            next_model = None
-                    if next_model:
-                        print(f"⚠️ Model '{current_model}' unavailable/paid. Switching to '{next_model}'...")
-                        current_model = next_model
-                        continue
+                # If model is unavailable or costs money, permanently drop it
+                # and try the next untried fallback — without spending a retry.
+                if is_model_error and remaining_fallbacks:
+                    next_model = remaining_fallbacks.pop(0)
+                    tried_models.add(next_model)
+                    print(f"⚠️ Model '{current_model}' unavailable/paid. Switching to '{next_model}'...")
+                    current_model = next_model
+                    continue
 
                 print(f"⚠️ API attempt {attempt}/{retries} failed: {e}")
                 if attempt < retries:
                     wait = attempt * 10
                     print(f"   Retrying in {wait}s...")
                     time.sleep(wait)
-                else:
-                    raise Exception(f"API failed after {retries} attempts: {e}")
+
+        raise Exception(f"API failed after {retries} attempts: {last_error}")

@@ -12,7 +12,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
-  issues: read
+  issues: write
 
 # Allow only one concurrent deployment
 concurrency:
@@ -22,7 +22,16 @@ concurrency:
 jobs:
   run-agent:
     # Only run on issue comments if the issue title starts with "Daily Update"
-    if: ${{ github.event_name != 'issue_comment' || startsWith(github.event.issue.title, 'Daily Update') }}
+    # AND the commenter is trusted (owner/member/collaborator). This is
+    # defense-in-depth against prompt injection from random public comments —
+    # feedback_service.py enforces the same check, but gating here avoids
+    # spinning up the job (and burning Actions minutes) for untrusted input.
+    if: >-
+      github.event_name != 'issue_comment' ||
+      (
+        startsWith(github.event.issue.title, 'Daily Update') &&
+        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+      )
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

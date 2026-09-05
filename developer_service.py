@@ -3,10 +3,23 @@ import re
 
 class DeveloperService:
 
+    @staticmethod
+    def resolve_target_file(plan):
+        # Priority: page.js > globals.css > layout.js
+        plan_lower = plan.lower()
+        if "page.js" in plan_lower:
+            return "src/app/page.js"
+        elif "globals.css" in plan_lower:
+            return "src/app/globals.css"
+        elif "layout.js" in plan_lower:
+            return "src/app/layout.js"
+        return None
+
     def generate_patch(
         self,
         ai,
-        context
+        context,
+        previous_error=None
     ):
         system_prompt = """You are an expert Next.js software engineer.
 
@@ -43,16 +56,7 @@ TAILWIND CSS v4 RULES (CRITICAL — builds WILL fail if you violate these):
 """
         # Determine which single file to modify based on the plan
         plan = context["plan"]
-        target_file = None
-
-        # Priority: page.js > globals.css > layout.js
-        plan_lower = plan.lower()
-        if "page.js" in plan_lower or "page.js" in plan:
-            target_file = "src/app/page.js"
-        elif "globals.css" in plan_lower or "globals.css" in plan:
-            target_file = "src/app/globals.css"
-        elif "layout.js" in plan_lower or "layout.js" in plan:
-            target_file = "src/app/layout.js"
+        target_file = self.resolve_target_file(plan)
 
         prompt = "Execution Plan\n\n"
         prompt += plan
@@ -68,6 +72,13 @@ TAILWIND CSS v4 RULES (CRITICAL — builds WILL fail if you violate these):
 
         prompt += "RESPOND WITH EXACTLY ONE <file> XML BLOCK. Start with <file> immediately.\n"
         prompt += "REMEMBER: No @apply in CSS. No importing packages not in package.json.\n"
+
+        if previous_error:
+            prompt += (
+                "\n\nIMPORTANT: Your previous attempt failed with this error. "
+                "Fix the issue and respond again with EXACTLY ONE <file> block:\n"
+                f"{previous_error}\n"
+            )
 
         result = ai.ask(prompt, system_prompt=system_prompt)
 
