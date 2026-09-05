@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export default function Home() {
   // Dark mode state
@@ -40,7 +40,24 @@ export default function Home() {
   const [profileImgError, setProfileImgError] = useState(false);
   const [heroParticles, setHeroParticles] = useState([]);
   const canvasRef = useRef(null);
+  const generativeCanvasRef = useRef(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const generativeParticlesRef = useRef([]);
+  const animationFrameRef = useRef(null);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const lastMouseRef = useRef({ x: 0, y: 0 });
+
+  // Generative art particle colors
+  const particleColors = [
+    "#3b82f6", // blue
+    "#a78bfa", // purple
+    "#8b5cf6", // violet
+    "#60a5fa", // light blue
+    "#c4b5fd", // lavender
+    "#818cf8", // indigo
+    "#38bdf8", // sky
+    "#22d3ee", // cyan
+  ];
 
   const form = {
     name: "",
@@ -203,7 +220,221 @@ export default function Home() {
     return () => clearTimeout(timeout);
   }, [typing, typingStrings]);
 
-  // Canvas particles
+  // Generative Art Canvas
+  useEffect(() => {
+    const canvas = generativeCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    let particles = [];
+    const maxParticles = 500;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    function createParticle(x, y, vx, vy) {
+      const color = particleColors[Math.floor(Math.random() * particleColors.length)];
+      return {
+        x: x,
+        y: y,
+        vx: vx + (Math.random() - 0.5) * 2,
+        vy: vy + (Math.random() - 0.5) * 2,
+        radius: Math.random() * 3 + 1,
+        color: color,
+        alpha: 1,
+        decay: Math.random() * 0.015 + 0.005,
+        life: 1,
+        connections: [],
+        branchProbability: Math.random() * 0.3,
+        pulsePhase: Math.random() * Math.PI * 2,
+        pulseSpeed: Math.random() * 0.05 + 0.02,
+      };
+    }
+
+    function spawnParticles(x, y, vx, vy, count) {
+      for (let i = 0; i < count; i++) {
+        if (particles.length < maxParticles) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 3 + 1;
+          const particleVx = Math.cos(angle) * speed + vx * 0.5;
+          const particleVy = Math.sin(angle) * speed + vy * 0.5;
+          particles.push(createParticle(x, y, particleVx, particleVy));
+        }
+      }
+    }
+
+    function updateParticle(p) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.98;
+      p.vy *= 0.98;
+      p.vy += 0.02; // slight gravity
+      p.life -= p.decay;
+      p.alpha = Math.max(0, p.life);
+      p.pulsePhase += p.pulseSpeed;
+
+      // Branching behavior
+      if (p.life < 0.7 && Math.random() < p.branchProbability * 0.05) {
+        spawnParticles(p.x, p.y, p.vx * 0.5, p.vy * 0.5, 2);
+      }
+
+      return p.life > 0;
+    }
+
+    function drawParticle(p) {
+      const pulseRadius = p.radius + Math.sin(p.pulsePhase) * 0.5;
+      const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, pulseRadius * 2);
+      gradient.addColorStop(0, p.color);
+      gradient.addColorStop(0.4, p.color + "cc");
+      gradient.addColorStop(1, "transparent");
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, pulseRadius, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.globalAlpha = p.alpha;
+      ctx.fill();
+
+      // Glow effect
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, pulseRadius * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    }
+
+    function drawConnections(p, allParticles) {
+      for (let j = 0; j < allParticles.length; j++) {
+        const p2 = allParticles[j];
+        if (p === p2) continue;
+
+        const dx = p.x - p2.x;
+        const dy = p.y - p2.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const maxDistance = 100;
+
+        if (distance < maxDistance) {
+          const opacity = (1 - distance / maxDistance) * 0.3 * Math.min(p.alpha, p2.alpha);
+          ctx.beginPath();
+          ctx.strokeStyle = p.color;
+          ctx.globalAlpha = opacity;
+          ctx.lineWidth = 0.5;
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+
+          // Add gradient line for visual appeal
+          const gradient = ctx.createLinearGradient(p.x, p.y, p2.x, p2.y);
+          gradient.addColorStop(0, p.color + "66");
+          gradient.addColorStop(1, p2.color + "66");
+          ctx.beginPath();
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = 0.3;
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function animate() {
+      // Create semi-transparent overlay for trail effect
+      ctx.fillStyle = "rgba(5, 5, 5, 0.05)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Calculate mouse velocity
+      const mouseVelocity = {
+        x: mouseRef.current.x - lastMouseRef.current.x,
+        y: mouseRef.current.y - lastMouseRef.current.y,
+      };
+
+      const speed = Math.sqrt(mouseVelocity.x * mouseVelocity.x + mouseVelocity.y * mouseVelocity.y);
+
+      // Spawn particles based on mouse movement
+      if (speed > 1) {
+        const particleCount = Math.min(Math.floor(speed * 0.5) + 1, 10);
+        spawnParticles(
+          mouseRef.current.x,
+          mouseRef.current.y,
+          mouseVelocity.x * 0.3,
+          mouseVelocity.y * 0.3,
+          particleCount
+        );
+      }
+
+      // Update and filter particles
+      particles = particles.filter(updateParticle);
+
+      // Draw connections first (behind particles)
+      particles.forEach((p) => drawConnections(p, particles));
+
+      // Draw particles
+      particles.forEach(drawParticle);
+
+      // Store last mouse position
+      lastMouseRef.current = { x: mouseRef.current.x, y: mouseRef.current.y };
+
+      animationFrameRef.current = requestAnimationFrame(animate);
+    }
+
+    function clearCanvas() {
+      ctx.fillStyle = "#050505";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      particles = [];
+    }
+
+    resizeCanvas();
+    clearCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    animate();
+
+    // Store reference to clear function
+    generativeCanvasRef.current.clearArt = clearCanvas;
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  // Handle mouse movement for generative canvas
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePos({
+        x: e.clientX,
+        y: e.clientY,
+      });
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  // Clear canvas handler
+  const clearGenerativeCanvas = useCallback(() => {
+    if (generativeCanvasRef.current && generativeCanvasRef.current.clearArt) {
+      generativeCanvasRef.current.clearArt();
+    }
+  }, []);
+
+  // Escape key to clear canvas
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        clearGenerativeCanvas();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [clearGenerativeCanvas]);
+
+  // Canvas particles (existing background)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -290,18 +521,6 @@ export default function Home() {
       });
     }
     setHeroParticles(particlesArray);
-  }, []);
-
-  // Track mouse position for interactive glow
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePos({
-        x: e.clientX,
-        y: e.clientY,
-      });
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
   const toggleMobileMenu = () => {
@@ -474,6 +693,43 @@ export default function Home() {
           }}
         />
 
+        {/* Interactive Generative Art Canvas */}
+        <canvas
+          ref={generativeCanvasRef}
+          className="absolute inset-0 z-10 cursor-crosshair"
+          style={{
+            background: "transparent",
+          }}
+        />
+
+        {/* Generative Art Controls */}
+        <div className="absolute bottom-8 right-8 z-20 flex items-center gap-3">
+          <button
+            onClick={clearGenerativeCanvas}
+            className="group flex items-center gap-2 px-4 py-2.5 bg-white/10 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-full text-sm font-medium text-gray-200 hover:bg-white/20 dark:hover:bg-white/10 transition-all duration-300 hover:scale-105"
+            aria-label="Clear canvas"
+          >
+            <svg className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span>Clear</span>
+          </button>
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-full text-xs text-gray-400">
+            <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-gray-300 font-mono">ESC</kbd>
+            <span>to clear</span>
+          </span>
+        </div>
+
+        {/* Generative Art Hint */}
+        <div className="absolute top-24 left-1/2 transform -translate-x-1/2 z-20 animate-fade-in" style={{ animationDelay: "2s" }}>
+          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-full">
+            <svg className="w-4 h-4 text-primary animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+            </svg>
+            <span className="text-sm text-gray-300">Move your mouse to create art</span>
+          </div>
+        </div>
+
         {/* CSS-based Particle Background */}
         {heroParticles.map((p) => (
           <div
@@ -546,7 +802,7 @@ export default function Home() {
         </svg>
 
         {/* Hero Content */}
-        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8">
+        <div className="relative z-20 h-full flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8">
           {/* Profile Image with Glowing Ring */}
           <div className="relative flex items-center justify-center py-20">
             <div className="relative">
@@ -692,7 +948,7 @@ export default function Home() {
               onClick={() => setShowProjects((prev) => !prev)}
               className="px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg text-sm font-medium interactive transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:-translate-y-0.5"
             >
-              {showProjects ? "Hide Projects" : "Show All Projects"}
+              {showProjects ? "Hide Projects" : "Show All Project"}
             </button>
           </div>
 
@@ -924,7 +1180,7 @@ export default function Home() {
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-200/10 dark:border-white/10 animate-fade-in" style={{ animationDelay: "300ms" }}>
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-            Built with Next.js &amp; Tailwind CSS • © {new Date().getFullYear()} Dhruv Sarvaiya
+            Built with Next.js & Tailwind CSS • © {new Date().getFullYear()} Dhruv Sarvaiya
           </p>
         </footer>
       </div>
