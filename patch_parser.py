@@ -102,17 +102,26 @@ ALLOWED_DIRS = ("src", "public")
 ALLOWED_EXTENSIONS = (".js", ".jsx", ".ts", ".tsx", ".css")
 
 
-def validate_file_paths(file_matches, project_files, target_file):
+def validate_file_paths(file_matches, project_files, target_files):
     """Guard against path traversal or the AI writing files it shouldn't.
 
     Only accepts paths that:
       - are relative and stay inside the repo (no absolute paths, no ..)
       - live under src/ or public/ with an allowed extension
-      - either match the plan's intended target file, or already exist in
-        the project (so the AI can't invent brand-new files)
+      - either match one of the plan's intended target files, or already
+        exist in the project (so the AI can't invent brand-new files)
+
+    `target_files` may be a single path, a list of paths (for plans that
+    legitimately span multiple coordinated files), or falsy.
     """
 
-    normalized_target = os.path.normpath(target_file) if target_file else None
+    if not target_files:
+        normalized_targets = set()
+    elif isinstance(target_files, str):
+        normalized_targets = {os.path.normpath(target_files)}
+    else:
+        normalized_targets = {os.path.normpath(t) for t in target_files}
+
     validated = []
 
     for path, content in file_matches:
@@ -128,13 +137,13 @@ def validate_file_paths(file_matches, project_files, target_file):
         if not normalized.endswith(ALLOWED_EXTENSIONS):
             raise PatchSecurityError(f"Refusing to write disallowed file type: {path!r}")
 
-        is_target = normalized_target and normalized == normalized_target
+        is_target = normalized in normalized_targets
         already_exists = normalized in project_files
 
         if not is_target and not already_exists:
             raise PatchSecurityError(
                 f"Refusing to create new file {path!r} — the plan only "
-                f"authorized changes to {target_file!r}"
+                f"authorized changes to {sorted(normalized_targets)!r}"
             )
 
         validated.append((normalized, content))

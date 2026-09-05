@@ -158,7 +158,7 @@ try:
 
     developer = DeveloperService()
     parser = PatchParser()
-    target_file = DeveloperService.resolve_target_file(plan)
+    target_files = DeveloperService.resolve_target_files(plan)
 
     file_matches = None
     previous_error = None
@@ -182,7 +182,7 @@ try:
 
         try:
             candidates = parser.parse(patch, plan)
-            file_matches = validate_file_paths(candidates, project, target_file)
+            file_matches = validate_file_paths(candidates, project, target_files)
             print("✅ Patch Parsed & Validated")
             break
         except (PatchParseError, PatchSecurityError) as e:
