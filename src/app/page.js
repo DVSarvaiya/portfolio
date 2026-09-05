@@ -3,6 +3,31 @@
 import { useState, useEffect, useRef } from "react";
 
 export default function Home() {
+  // Dark mode state
+  const [isDark, setIsDark] = useState(true);
+
+  // Dark mode effect
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme) {
+      setIsDark(savedTheme === "dark");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDark]);
+
+  const toggleDarkMode = () => {
+    setIsDark((prev) => !prev);
+  };
+
   // Existing state
   const [showProjects, setShowProjects] = useState(false);
   const [activeTab, setActiveTab] = useState("projects");
@@ -119,10 +144,10 @@ export default function Home() {
 
   const getLevelColor = (level) => {
     switch (level) {
-      case "Advanced": return "bg-emerald-500";
-      case "Intermediate": return "bg-amber-500";
-      case "Beginner": return "bg-blue-500";
-      default: return "bg-gray-500";
+      case "Advanced": return "bg-emerald-500 dark:bg-emerald-400";
+      case "Intermediate": return "bg-amber-500 dark:bg-amber-400";
+      case "Beginner": return "bg-blue-500 dark:bg-blue-400";
+      default: return "bg-gray-500 dark:bg-gray-400";
     }
   };
 
@@ -320,9 +345,9 @@ export default function Home() {
   );
 
   return (
-    <main className="relative min-h-screen bg-background text-foreground">
+    <main className="relative min-h-screen bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors duration-300">
       {/* Sticky Glass Navbar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/5 border-b border-gray-800/30 backdrop-blur-sm">
+      <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-gray-900/80 border-b border-gray-200/30 dark:border-gray-800/30 backdrop-blur-sm transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -339,7 +364,7 @@ export default function Home() {
                 <a
                   key={link.name}
                   href={link.href}
-                  className="relative text-sm font-medium text-foreground/80 hover:text-foreground transition-colors group"
+                  className="relative text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-foreground transition-colors group"
                 >
                   {link.name}
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:w-full"></span>
@@ -347,9 +372,25 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Social Icons (Desktop) */}
-            <div className="hidden md:flex space-x-4">
+            {/* Social Icons & Dark Mode Toggle (Desktop) */}
+            <div className="hidden md:flex items-center space-x-4">
               {socialLinks.map(renderSocialIcon)}
+              {/* Dark Mode Toggle Button */}
+              <button
+                onClick={toggleDarkMode}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-primary/20 border border-white/10 hover:border-primary/50 transition-all duration-300 hover:scale-110 hover:-translate-y-0.5"
+                aria-label="Toggle dark mode"
+              >
+                {isDark ? (
+                  <svg className="w-4 h-4 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
             </div>
 
             {/* Mobile Hamburger Button */}
@@ -360,17 +401,17 @@ export default function Home() {
               aria-expanded={mobileMenuOpen}
             >
               <span
-                className={`block w-5 h-0.5 bg-foreground transition-all duration-300 ${
+                className={`block w-5 h-0.5 bg-gray-800 dark:bg-gray-200 transition-all duration-300 ${
                   mobileMenuOpen ? "rotate-45 translate-y-1" : ""
                 }`}
               ></span>
               <span
-                className={`block w-5 h-0.5 bg-foreground transition-all duration-300 ${
+                className={`block w-5 h-0.5 bg-gray-800 dark:bg-gray-200 transition-all duration-300 ${
                   mobileMenuOpen ? "opacity-0" : ""
                 }`}
               ></span>
               <span
-                className={`block w-5 h-0.5 bg-foreground transition-all duration-300 ${
+                className={`block w-5 h-0.5 bg-gray-800 dark:bg-gray-200 transition-all duration-300 ${
                   mobileMenuOpen ? "-rotate-45 -translate-y-1" : ""
                 }`}
               ></span>
@@ -381,22 +422,38 @@ export default function Home() {
         {/* Mobile Menu - slide down with fade-in */}
         <div
           className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-            mobileMenuOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0 pointer-events-none"
+            mobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0 pointer-events-none"
           }`}
         >
-          <div className="px-4 pb-4 space-y-3 bg-black/60 backdrop-blur-xl border-t border-white/10">
+          <div className="px-4 pb-4 space-y-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t border-gray-200/10 dark:border-gray-800/10">
             {navLinks.map((link) => (
               <a
                 key={link.name}
                 href={link.href}
                 onClick={closeMobileMenu}
-                className="block text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-foreground transition-colors py-2"
               >
                 {link.name}
               </a>
             ))}
-            <div className="flex space-x-4 pt-2">
+            <div className="flex items-center space-x-4 pt-2">
               {socialLinks.map(renderSocialIcon)}
+              {/* Dark Mode Toggle Button */}
+              <button
+                onClick={toggleDarkMode}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-primary/20 border border-white/10 hover:border-primary/50 transition-all duration-300"
+                aria-label="Toggle dark mode"
+              >
+                {isDark ? (
+                  <svg className="w-4 h-4 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -405,7 +462,7 @@ export default function Home() {
       {/* Hero Section */}
       <section
         id="about"
-        className="relative h-screen bg-gradient-to-br from-[#050505] to-slate-900 overflow-hidden"
+        className="relative h-screen bg-gradient-to-br from-gray-50 to-slate-100 dark:from-[#050505] dark:to-slate-900 overflow-hidden transition-colors duration-300"
       >
         {/* Canvas Background */}
         <canvas
@@ -421,7 +478,7 @@ export default function Home() {
         {heroParticles.map((p) => (
           <div
             key={p.id}
-            className="absolute rounded-full bg-white animate-pulse"
+            className="absolute rounded-full bg-white dark:bg-white animate-pulse"
             style={{
               width: `${p.size}px`,
               height: `${p.size}px`,
@@ -510,21 +567,21 @@ export default function Home() {
             </div>
 
             {/* Floating Availability Badge */}
-            <div className="absolute -bottom-3 -right-3 bg-black/60 backdrop-blur-md border border-white/10 rounded-full px-3 py-1.5 flex items-center space-x-1.5 animate-bounce-slow">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-xs font-medium text-foreground/90">Available</span>
+            <div className="absolute -bottom-3 -right-3 bg-white/60 dark:bg-black/60 backdrop-blur-md border border-gray-200/10 dark:border-white/10 rounded-full px-3 py-1.5 flex items-center space-x-1.5 animate-bounce-slow">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
+              <span className="text-xs font-medium text-gray-800 dark:text-gray-200">Available</span>
             </div>
           </div>
 
           {/* Animated Typing Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4 tracking-tight">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-gray-100 mb-4 tracking-tight transition-colors duration-300">
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary bg-size-200 animate-gradient-shift">
               {typing.str}
             </span>
             <span className="inline-block w-0.5 h-[1.2em] bg-gradient-to-b from-primary to-accent ml-1 animate-blink"></span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-muted max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed transition-colors duration-300">
             Crafting elegant digital experiences with modern technologies and
             pixel-perfect design.
           </p>
@@ -555,7 +612,7 @@ export default function Home() {
             </a>
             <a
               href="#projects"
-              className="group relative px-8 py-4 glassmorphism border border-white/10 text-foreground font-medium rounded-full overflow-hidden transition-all duration-300 hover:border-primary/50 hover:-translate-y-0.5 active:translate-y-0"
+              className="group relative px-8 py-4 glassmorphism border border-gray-200/10 dark:border-white/10 text-gray-800 dark:text-gray-200 font-medium rounded-full overflow-hidden transition-all duration-300 hover:border-primary/50 hover:-translate-y-0.5 active:translate-y-0"
             >
               <span className="relative z-10 flex items-center space-x-2">
                 <span>View My Work</span>
@@ -577,34 +634,11 @@ export default function Home() {
             </a>
           </div>
 
-          {/* Social Icons with Hover Effects */}
-          <div className="flex items-center space-x-5 mb-12">
-            {socialLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative w-11 h-11 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:border-primary/50 hover:bg-primary/10 transition-all duration-300 hover:scale-110"
-                aria-label={link.name}
-              >
-                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-30 blur transition-opacity duration-300"></span>
-                <svg
-                  className="relative w-5 h-5 text-foreground/70 group-hover:text-primary transition-all duration-300 group-hover:scale-110"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {link.icon()}
-                </svg>
-              </a>
-            ))}
-          </div>
-
           {/* Smooth Scroll Indicator */}
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
             <div className="flex flex-col items-center space-y-2">
-              <span className="text-xs text-muted">Scroll Down</span>
-              <div className="w-6 h-10 rounded-full border-2 border-white/20 flex justify-center p-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Scroll Down</span>
+              <div className="w-6 h-10 rounded-full border-2 border-gray-300/20 dark:border-white/20 flex justify-center p-1">
                 <div className="w-1.5 h-3 bg-gradient-to-b from-primary to-accent rounded-full animate-scroll-dot" />
               </div>
             </div>
@@ -616,13 +650,13 @@ export default function Home() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
         {/* Tab Navigation */}
         <nav className="mb-10 animate-slide-up" style={{ animationDelay: "100ms" }}>
-          <div className="flex gap-2 bg-black/40 backdrop-blur-md border border-white/10 p-1 rounded-xl w-fit">
+          <div className="flex gap-2 bg-gray-100/80 dark:bg-black/40 backdrop-blur-md border border-gray-200/10 dark:border-white/10 p-1 rounded-xl w-fit">
             <button
               onClick={() => setActiveTab("projects")}
               className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "projects"
                   ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg"
-                  : "text-muted hover:text-foreground hover:bg-white/5"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200/50 dark:hover:bg-white/5"
               }`}
             >
               Projects
@@ -632,7 +666,7 @@ export default function Home() {
               className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "skills"
                   ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg"
-                  : "text-muted hover:text-foreground hover:bg-white/5"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200/50 dark:hover:bg-white/5"
               }`}
             >
               Skills
@@ -642,7 +676,7 @@ export default function Home() {
               className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "contact"
                   ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg"
-                  : "text-muted hover:text-foreground hover:bg-white/5"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200/50 dark:hover:bg-white/5"
               }`}
             >
               Contact
@@ -653,7 +687,7 @@ export default function Home() {
         {/* Projects Section */}
         <section id="projects" className="animate-slide-up" style={{ animationDelay: "200ms" }}>
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Featured Projects</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Featured Projects</h2>
             <button
               onClick={() => setShowProjects((prev) => !prev)}
               className="px-4 py-2 bg-gradient-to-r from-primary to-accent text-white rounded-lg text-sm font-medium interactive transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:-translate-y-0.5"
@@ -667,7 +701,7 @@ export default function Home() {
               {projects.map((project) => (
                 <article
                   key={project.id}
-                  className="group glassmorphism border border-white/10 rounded-2xl overflow-hidden shadow-card hover:shadow-glass transition-all duration-300 hover:-translate-y-1"
+                  className="group glassmorphism border border-gray-200/10 dark:border-white/10 rounded-2xl overflow-hidden shadow-card hover:shadow-glass transition-all duration-300 hover:-translate-y-1"
                 >
                   <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 relative overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -676,14 +710,14 @@ export default function Home() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
                   <div className="p-5">
-                    <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary transition-colors">
                       {project.title}
                     </h3>
-                    <p className="text-sm text-muted line-clamp-2">{project.description}</p>
-                    <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                      <span className="text-xs text-muted">View Details</span>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{project.description}</p>
+                    <div className="mt-4 pt-4 border-t border-gray-200/10 dark:border-white/10 flex items-center justify-between">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">View Details</span>
                       <svg
-                        className="w-5 h-5 text-muted group-hover:text-primary transition-colors transform group-hover:translate-x-1"
+                        className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-primary transition-colors transform group-hover:translate-x-1"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -700,7 +734,7 @@ export default function Home() {
               {projects.slice(0, 3).map((project) => (
                 <article
                   key={project.id}
-                  className="group glassmorphism border border-white/10 rounded-2xl overflow-hidden shadow-card hover:shadow-glass transition-all duration-300 hover:-translate-y-1"
+                  className="group glassmorphism border border-gray-200/10 dark:border-white/10 rounded-2xl overflow-hidden shadow-card hover:shadow-glass transition-all duration-300 hover:-translate-y-1"
                 >
                   <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 relative overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -709,14 +743,14 @@ export default function Home() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
                   <div className="p-5">
-                    <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary transition-colors">
                       {project.title}
                     </h3>
-                    <p className="text-sm text-muted line-clamp-2">{project.description}</p>
-                    <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                      <span className="text-xs text-muted">View Details</span>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{project.description}</p>
+                    <div className="mt-4 pt-4 border-t border-gray-200/10 dark:border-white/10 flex items-center justify-between">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">View Details</span>
                       <svg
-                        className="w-5 h-5 text-muted group-hover:text-primary transition-colors transform group-hover:translate-x-1"
+                        className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-primary transition-colors transform group-hover:translate-x-1"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -733,7 +767,7 @@ export default function Home() {
 
         {/* Skills Section */}
         <section id="skills" className="mt-16 animate-slide-up" style={{ animationDelay: "200ms" }}>
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-8">Technical Skills</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">Technical Skills</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {["frontend", "backend", "devops"].map((category) => {
               const categorySkills = skills.filter((s) => s.category === category);
@@ -746,7 +780,7 @@ export default function Home() {
               return (
                 <div
                   key={category}
-                  className="glassmorphism border border-white/10 rounded-2xl p-6 hover:shadow-glass transition-all duration-300"
+                  className="glassmorphism border border-gray-200/10 dark:border-white/10 rounded-2xl p-6 hover:shadow-glass transition-all duration-300"
                 >
                   <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-4">
                     {categoryLabels[category]}
@@ -755,10 +789,10 @@ export default function Home() {
                     {categorySkills.map((skill) => (
                       <div key={skill.id}>
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                          <span className="text-xs text-muted">{skill.level}</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{skill.name}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{skill.level}</span>
                         </div>
-                        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-2 bg-gray-200/50 dark:bg-white/5 rounded-full overflow-hidden">
                           <div
                             className={`h-full ${getLevelColor(skill.level)} rounded-full transition-all duration-500`}
                             style={{
@@ -782,25 +816,25 @@ export default function Home() {
 
         {/* Contact Section */}
         <section id="contact" className="mt-16 animate-slide-up" style={{ animationDelay: "200ms" }}>
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-8">Get In Touch</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">Get In Touch</h2>
           <form
             onSubmit={handleSubmit}
-            className="max-w-xl mx-auto glassmorphism border border-white/10 rounded-2xl p-6 sm:p-8 shadow-card"
+            className="max-w-xl mx-auto glassmorphism border border-gray-200/10 dark:border-white/10 rounded-2xl p-6 sm:p-8 shadow-card"
           >
             {submitStatus === "success" && (
-              <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-200 animate-fade-in">
+              <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-200 dark:text-emerald-300 animate-fade-in">
                 <p className="font-medium">Message sent successfully!</p>
                 <p className="text-sm mt-1">I'll get back to you as soon as possible.</p>
               </div>
             )}
             {submitStatus === "error" && (
-              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-200 animate-fade-in">
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-200 dark:text-red-300 animate-fade-in">
                 <p className="font-medium">Please fix the errors below.</p>
               </div>
             )}
             <div className="space-y-5">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1.5">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1.5">
                   Name
                 </label>
                 <input
@@ -810,23 +844,23 @@ export default function Home() {
                   value={formData.name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors bg-black/40 backdrop-blur-sm ${
+                  className={`w-full px-4 py-3 rounded-xl border transition-colors bg-white/40 dark:bg-black/40 backdrop-blur-sm ${
                     errors.name
                       ? "border-red-500/50 focus:border-red-500 focus:ring-red-500"
-                      : "border-white/10 focus:border-primary focus:ring-primary"
-                  } text-foreground focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 placeholder-muted`}
+                      : "border-gray-200/10 dark:border-white/10 focus:border-primary focus:ring-primary"
+                  } text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 placeholder-gray-500 dark:placeholder-gray-400`}
                   placeholder="Your name"
                   aria-invalid={errors.name ? "true" : "false"}
                   aria-describedby={errors.name ? "name-error" : undefined}
                 />
                 {errors.name && (
-                  <p id="name-error" className="mt-1.5 text-sm text-red-400 animate-fade-in">
+                  <p id="name-error" className="mt-1.5 text-sm text-red-400 dark:text-red-300 animate-fade-in">
                     {errors.name}
                   </p>
                 )}
               </div>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1.5">
                   Email
                 </label>
                 <input
@@ -836,23 +870,23 @@ export default function Home() {
                   value={formData.email}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors bg-black/40 backdrop-blur-sm ${
+                  className={`w-full px-4 py-3 rounded-xl border transition-colors bg-white/40 dark:bg-black/40 backdrop-blur-sm ${
                     errors.email
                       ? "border-red-500/50 focus:border-red-500 focus:ring-red-500"
-                      : "border-white/10 focus:border-primary focus:ring-primary"
-                  } text-foreground focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 placeholder-muted`}
+                      : "border-gray-200/10 dark:border-white/10 focus:border-primary focus:ring-primary"
+                  } text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 placeholder-gray-500 dark:placeholder-gray-400`}
                   placeholder="your@email.com"
                   aria-invalid={errors.email ? "true" : "false"}
                   aria-describedby={errors.email ? "email-error" : undefined}
                 />
                 {errors.email && (
-                  <p id="email-error" className="mt-1.5 text-sm text-red-400 animate-fade-in">
+                  <p id="email-error" className="mt-1.5 text-sm text-red-400 dark:text-red-300 animate-fade-in">
                     {errors.email}
                   </p>
                 )}
               </div>
               <div>
-                <label htmlFor="message" className="block text-sm font-medium text-foreground mb-1.5">
+                <label htmlFor="message" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1.5">
                   Message
                 </label>
                 <textarea
@@ -862,24 +896,24 @@ export default function Home() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   rows={5}
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors bg-black/40 backdrop-blur-sm resize-y min-h-[120px] ${
+                  className={`w-full px-4 py-3 rounded-xl border transition-colors bg-white/40 dark:bg-black/40 backdrop-blur-sm resize-y min-h-[120px] ${
                     errors.message
                       ? "border-red-500/50 focus:border-red-500 focus:ring-red-500"
-                      : "border-white/10 focus:border-primary focus:ring-primary"
-                  } text-foreground focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 placeholder-muted`}
+                      : "border-gray-200/10 dark:border-white/10 focus:border-primary focus:ring-primary"
+                  } text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 placeholder-gray-500 dark:placeholder-gray-400`}
                   placeholder="Your message..."
                   aria-invalid={errors.message ? "true" : "false"}
                   aria-describedby={errors.message ? "message-error" : undefined}
                 />
                 {errors.message && (
-                  <p id="message-error" className="mt-1.5 text-sm text-red-400 animate-fade-in">
+                  <p id="message-error" className="mt-1.5 text-sm text-red-400 dark:text-red-300 animate-fade-in">
                     {errors.message}
                   </p>
                 )}
               </div>
               <button
                 type="submit"
-                className="w-full px-6 py-3.5 bg-gradient-to-r from-primary to-accent text-white font-medium rounded-xl interactive transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-black/50 disabled:opacity-50"
+                className="w-full px-6 py-3.5 bg-gradient-to-r from-primary to-accent text-white font-medium rounded-xl interactive transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-white/50 dark:ring-offset-black/50 disabled:opacity-50"
               >
                 Send Message
               </button>
@@ -888,8 +922,8 @@ export default function Home() {
         </section>
 
         {/* Footer */}
-        <footer className="mt-16 pt-8 border-t border-white/10 animate-fade-in" style={{ animationDelay: "300ms" }}>
-          <p className="text-center text-sm text-muted">
+        <footer className="mt-16 pt-8 border-t border-gray-200/10 dark:border-white/10 animate-fade-in" style={{ animationDelay: "300ms" }}>
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
             Built with Next.js &amp; Tailwind CSS • © {new Date().getFullYear()} Dhruv Sarvaiya
           </p>
         </footer>
