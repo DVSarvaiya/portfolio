@@ -2,6 +2,7 @@ import Link from "next/link";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import Projects from "./components/Projects";
+import Journey from "./components/Journey";
 
 const socialLinks = [
   {
@@ -249,6 +250,7 @@ export default function Home() {
       <Navbar />
       <Hero />
       <Projects />
+      <Journey />
       <Skills />
       <ContactCta />
       <Footer />
