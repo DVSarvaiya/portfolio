@@ -40,6 +40,13 @@ FULLY WIRE WHAT YOU TOUCH:
 - When several files are in one response they must agree exactly: same class names, same CSS variable names, same prop names, same state values. Half-wiring one file and leaving another stale is the most common failure — do not do it.
 - A new component file must be imported and actually rendered by the file that uses it, in this same response.
 
+NEXT.JS APP ROUTER FILE RULES (this project uses file-system routing):
+- A new page at the URL /about is the file src/app/about/page.js. The folder name is the URL segment; the file is always named page.js and default-exports a React component.
+- src/app/page.js is the HOME page ("/"). Never turn it into a different page — a new route is a NEW file in a NEW folder, alongside it.
+- Link between routes with next/link: `import Link from "next/link"` then `<Link href="/about">About</Link>`. Use it instead of a plain <a href> for internal navigation, and instead of an anchor (#about) when the target is now its own route.
+- Add "use client" as the first line of any file that uses useState/useEffect/onClick. A page with no hooks or handlers should stay a server component (no "use client").
+- A new page must be a complete, real page — its own heading, sections and realistic hardcoded content. Not a stub that says "About page coming soon".
+
 STYLE:
 - Reuse the project's existing CSS variables (--primary, --accent, --muted, --background, --foreground, --border, --card, --glass-bg) instead of new hardcoded hex colors, so changes stay theme-aware in both light and dark mode.
 - Match the spacing, radius and shadow conventions already in the file you're editing.
