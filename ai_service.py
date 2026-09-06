@@ -2,13 +2,20 @@ from openai import OpenAI
 import time
 
 
-# Verified free models from OpenRouter API (Aug 2026)
-# These have $0 prompt + $0 completion pricing
+# Free OpenRouter models, ordered by best-guess fit for code/UI generation
+# (Sep 2026) — picked from live availability + weekly-usage signals rather
+# than a network-verified benchmark (this environment can't reach
+# openrouter.ai to confirm exact slugs). A wrong/renamed slug here is
+# harmless: AIService.ask() treats a 404 as "unavailable" and moves on to
+# the next entry, so this list is safe to keep pruning/reordering over time
+# as models come and go on OpenRouter.
 FALLBACK_MODELS = [
-    "openrouter/free",                              # Smart router — free models only
-    "google/gemma-4-31b-it:free",                    # 262k ctx, 32k output
-    "nvidia/nemotron-3-super-120b-a12b:free",        # 262k ctx, 262k output
-    "nvidia/nemotron-3.5-lightning:free",             # 1M ctx, 65k output
+    "z-ai/glm-5.2:free",                    # GLM line has a strong code-gen track record
+    "minimax/minimax-m3:free",              # very high real-world usage, 1M ctx
+    "poolside/laguna-s-2.1:free",           # Poolside is a code-model-focused lab
+    "nvidia/nemotron-3.5-lightning:free",   # 1M ctx, fast, previously verified working
+    "nvidia/nemotron-3-super:free",         # large model, solid all-rounder fallback
+    "openrouter/free",                      # last-resort smart router
 ]
 
 
@@ -72,12 +79,22 @@ class AIService:
                     or "requires more credits" in error_str.lower()
                 )
 
+                is_rate_limited = (
+                    "429" in error_str
+                    or "rate limit" in error_str.lower()
+                    or "too many requests" in error_str.lower()
+                )
+
                 # If model is unavailable or costs money, permanently drop it
                 # and try the next untried fallback — without spending a retry.
-                if is_model_error and remaining_fallbacks:
+                # A rate-limited model is worth swapping away from too: the
+                # limit is usually per-model, and the agent loop makes many
+                # calls per run.
+                if (is_model_error or is_rate_limited) and remaining_fallbacks:
                     next_model = remaining_fallbacks.pop(0)
                     tried_models.add(next_model)
-                    print(f"⚠️ Model '{current_model}' unavailable/paid. Switching to '{next_model}'...")
+                    reason = "rate-limited" if is_rate_limited else "unavailable/paid"
+                    print(f"⚠️ Model '{current_model}' {reason}. Switching to '{next_model}'...")
                     current_model = next_model
                     continue
 
