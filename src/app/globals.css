@@ -473,6 +473,109 @@ html {
   height: 100%;
 }
 
+/* ========== ProjectCard — pointer-tracking spotlight + 3D tilt ========== */
+/* The card writes --px, --py, --rx, --ry to its own root via a ref-driven
+   pointermove handler. CSS does the rest — no React state, no re-renders.
+   Tilt and spotlight are disabled under prefers-reduced-motion and on
+   coarse (touch) pointers. */
+
+.project-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  /* Establishes a stacking/transform context and 3D scene for the inner. */
+  perspective: 1000px;
+  isolation: isolate;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(15, 31, 28, 0.08);
+  will-change: transform;
+  transition: transform 350ms ease, box-shadow 350ms ease, border-color 350ms ease;
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 32px rgba(15, 31, 28, 0.14);
+  border-color: var(--primary-soft);
+}
+
+/* Decorative gradient border ring — sits at the very top of the stack,
+   invisible by default, fades in on hover. Uses a conic gradient so it
+   reads as a soft, sweeping glow rather than a hard line. */
+.project-card__border {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from 0deg at var(--px, 50%) var(--py, 50%),
+    var(--primary) 0deg,
+    var(--accent) 120deg,
+    var(--primary-soft) 240deg,
+    var(--primary) 360deg
+  );
+  opacity: 0;
+  transition: opacity 400ms ease;
+  /* Mask away the interior so only the ring is visible. */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+}
+
+.project-card:hover .project-card__border {
+  opacity: 1;
+}
+
+/* Pointer-tracking radial highlight — a soft glow that follows the
+   cursor. Position is driven entirely by --px / --py written from JS. */
+.project-card__spotlight {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 350ms ease;
+  background: radial-gradient(
+    320px 320px at var(--px, 50%) var(--py, 50%),
+    color-mix(in srgb, var(--primary) 22%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 10%, transparent) 35%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+}
+
+.project-card:hover .project-card__spotlight {
+  opacity: 1;
+}
+
+/* Tilted content wrapper — only the content rotates; the border and
+   spotlight stay flat. transform-style: preserve-3d so children with
+   their own translateZ (the cover image) keep their depth. */
+.project-card__inner {
+  position: relative;
+  z-index: 2;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg));
+  transition: transform 350ms ease;
+  will-change: transform;
+}
+
+/* Hide the decorative layers on touch devices — no pointer to track. */
+@media (pointer: coarse) {
+  .project-card__border,
+  .project-card__spotlight {
+    display: none;
+  }
+
+  .project-card__inner {
+    transform: none;
+  }
+}
+
 /* ========== Scroll-driven reveal — native CSS only ========== */
 
 /* Default: content fully visible so unsupported browsers / reduced-motion
@@ -593,6 +696,21 @@ html {
   .techcube-spin {
     animation: none !important;
     transform: rotateX(-15deg) rotateY(25deg);
+  }
+
+  /* No tilt, no spotlight, no border ring — the card behaves like a
+     static, calm panel. */
+  .project-card__border,
+  .project-card__spotlight {
+    display: none;
+  }
+
+  .project-card__inner {
+    transform: none;
+  }
+
+  .project-card {
+    transition: none;
   }
 }
 

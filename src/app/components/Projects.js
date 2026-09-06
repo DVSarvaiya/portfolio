@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ProjectCard from "./ProjectCard";
 
 const projects = [
   {
@@ -123,75 +124,20 @@ export default function Projects() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {visibleProjects.map((project, index) => (
-            <article
+            <div
               key={project.id}
-              className="reveal card-surface overflow-hidden"
+              className="reveal"
               style={{ animationDelay: `${(index + 1) * 0.1}s` }}
             >
-              <a
-                href={project.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-                aria-label={`Open ${project.title} on GitHub`}
-              >
-                <div
-                  className="aspect-[16/10] relative overflow-hidden"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgba(42,157,143,0.18) 0%, rgba(224,120,86,0.18) 100%)",
-                  }}
-                >
-                  <div
-                    className="absolute inset-0 opacity-60"
-                    style={{
-                      backgroundImage:
-                        "radial-gradient(circle at 20% 30%, rgba(255,251,243,0.4) 0%, transparent 35%), radial-gradient(circle at 80% 70%, rgba(255,251,243,0.25) 0%, transparent 35%)",
-                    }}
-                    aria-hidden="true"
-                  />
-                  <div className="absolute inset-0 flex items-end justify-between">
-                    <span className="m-4 text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full tag-primary">
-                      {project.tag}
-                    </span>
-                    <span
-                      className="m-4 text-xs font-mono"
-                      style={{ opacity: 0.7 }}
-                    >
-                      {project.year}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3
-                    className="text-lg font-semibold mb-2"
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      color: "var(--foreground)",
-                    }}
-                  >
-                    {project.title}
-                  </h3>
-                  <p className="text-sm text-foreground/65 leading-relaxed mb-4">
-                    {project.description}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {project.tech.map((t) => (
-                      <span
-                        key={t}
-                        className="text-[11px] font-medium px-2 py-0.5 rounded-md"
-                        style={{
-                          background: "var(--surface)",
-                          border: "1px solid var(--border)",
-                        }}
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </a>
-            </article>
+              <ProjectCard
+                title={project.title}
+                tag={project.tag}
+                year={project.year}
+                description={project.description}
+                tech={project.tech}
+                link={project.link}
+              />
+            </div>
           ))}
         </div>
       </div>
