@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 
 export default function Home() {
   // Dark mode state - instant toggle via DOM
@@ -221,7 +222,7 @@ export default function Home() {
 
   // nav links config
   const navLinks = [
-    { name: "About", href: "#about" },
+    { name: "About", href: "/about" },
     { name: "Projects", href: "#projects" },
     { name: "Skills", href: "#skills" },
     { name: "Contact", href: "#contact" },
@@ -268,14 +269,25 @@ export default function Home() {
             {/* Desktop Nav Links */}
             <div className="hidden md:flex space-x-8">
               {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="relative text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors group dark:text-gray-200 dark:hover:text-foreground"
-                >
-                  {link.name}
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-violet-500 transition-all duration-300 group-hover:w-full dark:from-primary dark:to-accent"></span>
-                </a>
+                link.name === "About" ? (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    className="relative text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors group dark:text-gray-200 dark:hover:text-foreground"
+                  >
+                    {link.name}
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-violet-500 transition-all duration-300 group-hover:w-full dark:from-primary dark:to-accent"></span>
+                  </Link>
+                ) : (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    className="relative text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors group dark:text-gray-200 dark:hover:text-foreground"
+                  >
+                    {link.name}
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-violet-500 transition-all duration-300 group-hover:w-full dark:from-primary dark:to-accent"></span>
+                  </a>
+                )
               ))}
             </div>
 
@@ -334,14 +346,25 @@ export default function Home() {
         >
           <div className="px-4 pb-4 space-y-3 bg-white/95 border-t border-slate-200/60 dark:bg-gray-900/95 dark:border-gray-800/30">
             {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                onClick={closeMobileMenu}
-                className="block text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors py-2 dark:text-gray-200 dark:hover:text-foreground"
-              >
-                {link.name}
-              </a>
+              link.name === "About" ? (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={closeMobileMenu}
+                  className="block text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors py-2 dark:text-gray-200 dark:hover:text-foreground"
+                >
+                  {link.name}
+                </Link>
+              ) : (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  onClick={closeMobileMenu}
+                  className="block text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors py-2 dark:text-gray-200 dark:hover:text-foreground"
+                >
+                  {link.name}
+                </a>
+              )
             ))}
             <div className="flex items-center space-x-3 pt-2">
               {socialLinks.map(renderSocialIcon)}
