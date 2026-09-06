@@ -273,8 +273,8 @@ export default function Home() {
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <a
-              href="#about"
+            <Link
+              href="/"
               className="flex items-center gap-2"
               style={{
                 fontFamily: "var(--font-display)",
@@ -292,7 +292,7 @@ export default function Home() {
                 DS
               </span>
               <span className="text-base text-foreground">Dhruv Sarvaiya</span>
-            </a>
+            </Link>
 
             <div className="hidden md:flex items-center gap-8">
               {navLinks.map((link) =>
@@ -350,7 +350,7 @@ export default function Home() {
 
             <button
               onClick={toggleMobileMenu}
-              className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg"
+              className="md:hidden w-10 h-10 flex flex-col items-center justify-center gap-1 rounded-lg"
               style={{
                 background: "var(--surface-2)",
                 border: "1px solid var(--border)",
@@ -360,7 +360,7 @@ export default function Home() {
             >
               <span
                 className={`block w-5 h-0.5 transition-all duration-300 ${
-                  mobileMenuOpen ? "rotate-45 translate-y-1" : ""
+                  mobileMenuOpen ? "rotate-45 translate-y-[3px]" : ""
                 }`}
                 style={{ background: "var(--foreground)" }}
               ></span>
@@ -372,7 +372,7 @@ export default function Home() {
               ></span>
               <span
                 className={`block w-5 h-0.5 transition-all duration-300 ${
-                  mobileMenuOpen ? "-rotate-45 -translate-y-1" : ""
+                  mobileMenuOpen ? "-rotate-45 -translate-y-[3px]" : ""
                 }`}
                 style={{ background: "var(--foreground)" }}
               ></span>
@@ -575,7 +575,7 @@ export default function Home() {
               className="btn-primary inline-flex items-center gap-2 px-8 py-3.5 font-medium rounded-full"
             >
               <span>Start a Project</span>
-              <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </Link>
@@ -711,14 +711,12 @@ export default function Home() {
                       aria-hidden="true"
                     />
                     <div className="absolute inset-0 flex items-end justify-between">
-                      <span
-                        className="m-4 text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full tag-primary"
-                      >
+                      <span className="m-4 text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full tag-primary">
                         {project.tag}
                       </span>
                       <span
                         className="m-4 text-xs font-mono"
-                        style={{ color: "var(--foreground)/0.7", opacity: 0.7 }}
+                        style={{ opacity: 0.7 }}
                       >
                         {project.year}
                       </span>
@@ -734,7 +732,7 @@ export default function Home() {
                     >
                       {project.title}
                     </h3>
-                    <p className="text-sm text-foreground/65 leading-relaxed line-clamp-3 mb-4">
+                    <p className="text-sm text-foreground/65 leading-relaxed mb-4">
                       {project.description}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -744,7 +742,6 @@ export default function Home() {
                           className="text-[11px] font-medium px-2 py-0.5 rounded-md"
                           style={{
                             background: "var(--surface)",
-                            color: "var(--foreground)/0.75",
                             border: "1px solid var(--border)",
                           }}
                         >
