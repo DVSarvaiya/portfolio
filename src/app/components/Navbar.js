@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const navLinks = [
+  { name: "Home", href: "/" },
   { name: "About", href: "/about" },
-  { name: "Projects", href: "#projects" },
-  { name: "Skills", href: "#skills" },
+  { name: "Projects", href: "/projects" },
   { name: "Contact", href: "/contact" },
 ];
 
@@ -32,6 +33,9 @@ export default function Navbar() {
   const [isDark, setIsDark] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hoveredKey, setHoveredKey] = useState(null);
+
+  const pathname = usePathname();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -74,6 +78,11 @@ export default function Navbar() {
   const toggleMobileMenu = () => setMobileMenuOpen((p) => !p);
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
+  const isActive = (href) => {
+    if (href === "/") return pathname === "/";
+    return pathname === href || pathname?.startsWith(href + "/");
+  };
+
   const renderSocialIcon = (link) => (
     <a
       key={link.name}
@@ -101,6 +110,44 @@ export default function Navbar() {
       </svg>
     </a>
   );
+
+  const renderDesktopLink = (link) => {
+    const active = isActive(link.href);
+    return (
+      <Link
+        key={link.name}
+        href={link.href}
+        onMouseEnter={() => setHoveredKey(link.name)}
+        onMouseLeave={() => setHoveredKey(null)}
+        className="relative text-sm font-medium transition-colors py-1"
+        style={{
+          color: active ? "var(--primary)" : "var(--foreground)",
+          opacity: active ? 1 : 0.8,
+        }}
+        aria-current={active ? "page" : undefined}
+      >
+        {link.name}
+        {/* Active underline */}
+        <span
+          aria-hidden="true"
+          className="absolute left-0 right-0 -bottom-0.5 rounded-full"
+          style={{
+            height: "2px",
+            background:
+              "linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%)",
+            transform: active
+              ? "scaleX(1)"
+              : hoveredKey === link.name
+              ? "scaleX(0.6)"
+              : "scaleX(0)",
+            transformOrigin: "left center",
+            transition: "transform 250ms ease",
+            opacity: active ? 1 : 0.6,
+          }}
+        />
+      </Link>
+    );
+  };
 
   return (
     <nav
@@ -139,25 +186,7 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) =>
-              link.name === "About" || link.name === "Contact" ? (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className="relative text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
-                >
-                  {link.name}
-                </Link>
-              ) : (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="relative text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
-                >
-                  {link.name}
-                </a>
-              )
-            )}
+            {navLinks.map(renderDesktopLink)}
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -236,27 +265,24 @@ export default function Navbar() {
             borderTop: "1px solid var(--border)",
           }}
         >
-          {navLinks.map((link) =>
-            link.name === "About" || link.name === "Contact" ? (
+          {navLinks.map((link) => {
+            const active = isActive(link.href);
+            return (
               <Link
                 key={link.name}
                 href={link.href}
                 onClick={closeMobileMenu}
-                className="block text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+                className="block text-sm font-medium transition-colors py-2"
+                style={{
+                  color: active ? "var(--primary)" : "var(--foreground)",
+                  opacity: active ? 1 : 0.8,
+                }}
+                aria-current={active ? "page" : undefined}
               >
                 {link.name}
               </Link>
-            ) : (
-              <a
-                key={link.name}
-                href={link.href}
-                onClick={closeMobileMenu}
-                className="block text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
-              >
-                {link.name}
-              </a>
-            )
-          )}
+            );
+          })}
           <div className="flex items-center gap-3 pt-2">
             {socialLinks.map(renderSocialIcon)}
             <button
