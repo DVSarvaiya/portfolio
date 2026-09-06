@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 export default function Home() {
@@ -50,6 +50,12 @@ export default function Home() {
   const [showProjects, setShowProjects] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileImgError, setProfileImgError] = useState(false);
+
+  // Refs for the single kept canvas animation + visibility tracking
+  const canvasRef = useRef(null);
+  const heroRef = useRef(null);
+  const isVisibleRef = useRef(true);
+  const rafIdRef = useRef(0);
 
   // Hardcoded projects with realistic details
   const projects = [
@@ -203,6 +209,202 @@ export default function Home() {
 
     return () => clearTimeout(timeout);
   }, [typing, typingStrings]);
+
+  // Single kept canvas animation: 35 particles, batched line strokes,
+  // pauses when offscreen / tab hidden / reduced-motion preferred.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const hero = heroRef.current;
+    if (!canvas || !hero) return;
+
+    // Respect reduced-motion: draw one static frame and bail.
+    const reduceMotion =
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const ctx = canvas.getContext("2d", { alpha: true });
+    if (!ctx) return;
+
+    let particles = [];
+    let width = 0;
+    let height = 0;
+    let dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+
+    const PARTICLE_COUNT = 35;
+    const LINK_DISTANCE = 130;
+    const LINK_DISTANCE_SQ = LINK_DISTANCE * LINK_DISTANCE;
+    const MAX_SPEED = 0.35;
+
+    const resize = () => {
+      const rect = hero.getBoundingClientRect();
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
+      dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Reseed particles to fit new bounds; preserve count.
+      const next = [];
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        next.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * MAX_SPEED,
+          vy: (Math.random() - 0.5) * MAX_SPEED,
+          r: Math.random() * 1.4 + 0.8,
+        });
+      }
+      particles = next;
+    };
+
+    const drawStatic = () => {
+      ctx.clearRect(0, 0, width, height);
+      // Subtle static dust only — no connections for reduced-motion.
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(42, 157, 143, 0.5)";
+        ctx.fill();
+      }
+    };
+
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      // Move + draw dots in one pass.
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
+      }
+
+      // Build a single batched path of all visible connections,
+      // then stroke once.
+      ctx.beginPath();
+      for (let i = 0; i < particles.length; i++) {
+        const a = particles[i];
+        for (let j = i + 1; j < particles.length; j++) {
+          const b = particles[j];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < LINK_DISTANCE_SQ) {
+            const alpha = 1 - d2 / LINK_DISTANCE_SQ;
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            // We can't change strokeStyle mid-path with current alpha,
+            // so accept a single composite alpha; this still beats N strokes.
+            ctx.strokeStyle = `rgba(42, 157, 143, ${alpha * 0.35})`;
+          }
+        }
+      }
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Dots on top.
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(42, 157, 143, 0.85)";
+        ctx.fill();
+      }
+
+      rafIdRef.current = requestAnimationFrame(draw);
+    };
+
+    resize();
+
+    if (reduceMotion) {
+      drawStatic();
+      // Still respond to resize for static layout.
+      const onResize = () => {
+        resize();
+        drawStatic();
+      };
+      window.addEventListener("resize", onResize);
+      return () => {
+        window.removeEventListener("resize", onResize);
+      };
+    }
+
+    rafIdRef.current = requestAnimationFrame(draw);
+
+    const onResize = () => resize();
+    window.addEventListener("resize", onResize);
+
+    // IntersectionObserver: pause drawing when hero leaves the viewport.
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (let i = 0; i < entries.length; i++) {
+          const entry = entries[i];
+          if (entry.target === hero) {
+            isVisibleRef.current = entry.isIntersecting;
+            if (!entry.isIntersecting) {
+              if (rafIdRef.current) {
+                cancelAnimationFrame(rafIdRef.current);
+                rafIdRef.current = 0;
+              }
+            } else if (!rafIdRef.current) {
+              rafIdRef.current = requestAnimationFrame(draw);
+            }
+          }
+        }
+      },
+      { threshold: 0 }
+    );
+    io.observe(hero);
+
+    // visibilitychange: pause when tab is hidden.
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        if (rafIdRef.current) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = 0;
+        }
+      } else if (isVisibleRef.current && !rafIdRef.current) {
+        rafIdRef.current = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("resize", onResize);
+      document.removeEventListener("visibilitychange", onVisibility);
+      io.disconnect();
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = 0;
+      }
+    };
+  }, []);
+
+  // Passive mouse glow: writes CSS vars on the hero container.
+  // No setState, no React re-render.
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero) return;
+    const reduceMotion =
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+
+    const onMove = (e) => {
+      const rect = hero.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      hero.style.setProperty("--mx", `${x}px`);
+      hero.style.setProperty("--my", `${y}px`);
+    };
+    hero.addEventListener("mousemove", onMove, { passive: true });
+    return () => hero.removeEventListener("mousemove", onMove);
+  }, []);
 
   const toggleMobileMenu = () => setMobileMenuOpen((p) => !p);
   const closeMobileMenu = () => setMobileMenuOpen(false);
@@ -443,8 +645,16 @@ export default function Home() {
       {/* ====================== HERO ====================== */}
       <section
         id="about"
+        ref={heroRef}
         className="relative min-h-screen pt-24 pb-12 overflow-hidden hero-bg"
+        style={{
+          "--mx": "50%",
+          "--my": "50%",
+        }}
       >
+        {/* Mouse glow — passive, no React state */}
+        <div className="hero-mouse-glow" aria-hidden="true" />
+
         {/* Floating orbs parallax layer */}
         <div className="orb orb-1" aria-hidden="true" />
         <div className="orb orb-2" aria-hidden="true" />
@@ -452,6 +662,13 @@ export default function Home() {
 
         {/* Parallax grid behind headline */}
         <div className="bg-grid" aria-hidden="true" />
+
+        {/* Single kept particle canvas */}
+        <canvas
+          ref={canvasRef}
+          className="hero-particles"
+          aria-hidden="true"
+        />
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[calc(100vh-6rem)] text-center">
           {/* Profile avatar */}
