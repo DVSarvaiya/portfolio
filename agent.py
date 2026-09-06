@@ -1,6 +1,7 @@
 import os
-import shutil
+import re
 import traceback
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
@@ -9,11 +10,8 @@ from ai_service import AIService
 from file_manager import FileManager
 from feedback_service import FeedbackService
 from execution_context import ExecutionContext
-from planner_service import PlannerService
-from developer_service import DeveloperService
-from validator import Validator
+from agent_runner import AgentRunner, DEFAULT_MAX_ITERATIONS
 from git_service import GitService
-from patch_parser import PatchParser, PatchParseError, PatchSecurityError, validate_file_paths
 
 # ==========================================================
 # Load Environment Variables
@@ -25,8 +23,7 @@ GH_TOKEN = os.getenv("GH_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 REPOSITORY = os.getenv("GITHUB_REPOSITORY")
 MODEL = os.getenv("OPENROUTER_MODEL", "z-ai/glm-5.2:free")
-
-MAX_PATCH_ATTEMPTS = 3
+MAX_ITERATIONS = int(os.getenv("AGENT_MAX_ITERATIONS", DEFAULT_MAX_ITERATIONS))
 
 if not GH_TOKEN:
     raise Exception("Missing GH_TOKEN")
@@ -41,11 +38,7 @@ if not REPOSITORY:
 # GitHub
 # ==========================================================
 
-github_service = GitHubService(
-    GH_TOKEN,
-    REPOSITORY
-)
-
+github_service = GitHubService(GH_TOKEN, REPOSITORY)
 repo = github_service.get_repo()
 
 print("✅ GitHub Connected")
@@ -55,10 +48,7 @@ print(f"Repository: {repo.full_name}")
 # AI
 # ==========================================================
 
-ai = AIService(
-    OPENROUTER_API_KEY,
-    MODEL
-)
+ai = AIService(OPENROUTER_API_KEY, MODEL)
 
 print("✅ OpenRouter Connected")
 
@@ -67,7 +57,6 @@ print("✅ OpenRouter Connected")
 # ==========================================================
 
 files = FileManager()
-
 project = files.collect_project_files()
 
 print(f"✅ Loaded {len(project)} project files")
@@ -92,13 +81,52 @@ else:
     exit(0)
 
 
-def fail(message, mark_comment_processed=False):
-    """Report a failure back to the issue (so it's visible without digging
-    through Actions logs) and exit with a non-zero status."""
+def today():
+    return datetime.now(timezone.utc).strftime("%d %b %Y")
+
+
+def plan_section(plan, header):
+    """Pull one section (GOAL / DETAILS) out of the plan text."""
+    if not plan:
+        return ""
+    match = re.search(
+        rf'{header}:\s*(.+?)(?:\n\s*\n|\Z)',
+        plan,
+        re.IGNORECASE | re.DOTALL,
+    )
+    return match.group(1).strip() if match else ""
+
+
+def quoted(text, limit=280):
+    snippet = " ".join(text.split())[:limit]
+    return f"> {snippet}{'…' if len(text) > limit else ''}"
+
+
+def fail(message, run=None, mark_processed=False):
+    """Report a failure to the issue and exit non-zero."""
     print(f"\n❌ {message}\n")
-    feedback_service.report(issue, f"⚠️ Daily update failed: {message}")
-    if mark_comment_processed:
+
+    body = [
+        f"## ⚠️ Daily Update — {today()}",
+        "",
+        "**Status:** could not ship a change",
+        "",
+        "**Your request**",
+        quoted(feedback),
+        "",
+        "**What went wrong**",
+        message,
+    ]
+
+    if run and run.history:
+        attempts = "\n".join(f"- {line}" for line in run.history[-10:])
+        body += ["", f"**What I tried ({run.iterations} iteration(s))**", attempts]
+
+    feedback_service.report(issue, "\n".join(body))
+
+    if mark_processed:
         feedback_service.mark_processed(comment)
+
     exit(1)
 
 
@@ -108,137 +136,23 @@ try:
     # ==========================================================
 
     context = ExecutionContext()
-
     context.set_feedback(feedback)
-
     context.set_project(project)
 
     # ==========================================================
-    # Planning Stage
+    # Iterate until the build passes (or the budget runs out)
     # ==========================================================
 
-    planner = PlannerService()
+    runner = AgentRunner(ai, context, max_iterations=MAX_ITERATIONS)
+    run = runner.run()
 
-    plan = planner.build_plan(
-        ai,
-        context.get_context()
-    )
-
-    context.set_plan(plan)
-
-    print("\n========== PLAN ==========\n")
-    print(plan)
-    print("\n==========================\n")
-
-    # Validate plan is actionable — check that it references at least one project file
-    plan_references_files = any(
-        path in plan for path in project.keys()
-    )
-
-    if len(plan.strip()) < 50 or not plan_references_files:
-        print("⚠️  Plan does not contain actionable changes (no project files referenced).")
-        feedback_service.report(
-            issue,
-            "ℹ️ I couldn't turn this feedback into a concrete code change "
-            "(no existing project file was referenced). Try rephrasing with "
-            "a specific page or section to change."
-        )
-        feedback_service.mark_processed(comment)
-        print("🎉 Agent Exiting — nothing to do.")
-        exit(0)
-
-    os.makedirs("plans", exist_ok=True)
-
-    with open("plans/latest.md", "w", encoding="utf-8") as file:
-        file.write(plan)
-
-    # ==========================================================
-    # Developer Stage — generate, parse & validate, with retries
-    # ==========================================================
-
-    developer = DeveloperService()
-    parser = PatchParser()
-    target_files = DeveloperService.resolve_target_files(plan)
-
-    file_matches = None
-    previous_error = None
-
-    for attempt in range(1, MAX_PATCH_ATTEMPTS + 1):
-        print(f"🔧 Generating patch (attempt {attempt}/{MAX_PATCH_ATTEMPTS})...")
-
-        patch = developer.generate_patch(
-            ai,
-            context.get_context(),
-            previous_error=previous_error
-        )
-
-        os.makedirs("patches", exist_ok=True)
-        with open("patches/latest.patch", "w", encoding="utf-8") as file:
-            file.write(patch)
-
-        print("\n========== RAW PATCH OUTPUT (first 500 chars) ==========")
-        print(patch[:500])
-        print("========================================================\n")
-
-        try:
-            candidates = parser.parse(patch, plan)
-            file_matches = validate_file_paths(candidates, project, target_files)
-            print("✅ Patch Parsed & Validated")
-            break
-        except (PatchParseError, PatchSecurityError) as e:
-            previous_error = str(e)
-            print(f"⚠️ Attempt {attempt}/{MAX_PATCH_ATTEMPTS} failed: {previous_error}")
-
-    if file_matches is None:
+    if run.status != "ready":
         fail(
-            f"the AI could not produce a valid, safe patch after "
-            f"{MAX_PATCH_ATTEMPTS} attempts ({previous_error})",
-            mark_comment_processed=True
+            f"I ran {run.iterations} iterations without producing a change that builds. "
+            f"Last error:\n\n```\n{(run.error or 'unknown')[-1200:]}\n```",
+            run=run,
+            mark_processed=True,
         )
-
-    # ==========================================================
-    # Apply Patch — backup & rollback
-    # ==========================================================
-
-    backups = {}
-    for file_path, _ in file_matches:
-        if os.path.exists(file_path):
-            backup_path = file_path + ".bak"
-            shutil.copy2(file_path, backup_path)
-            backups[file_path] = backup_path
-
-    for file_path, file_content in file_matches:
-        os.makedirs(os.path.dirname(file_path) or '.', exist_ok=True)
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(file_content)
-        print(f"  ✏️  Wrote: {file_path}")
-
-    print("✅ Patch Applied")
-
-    # ==========================================================
-    # Validate
-    # ==========================================================
-
-    validator = Validator()
-
-    success, error = validator.run()
-
-    if not success:
-        print("\n🔄 Rolling back changes...")
-        for original, backup in backups.items():
-            shutil.move(backup, original)
-            print(f"  ↩️  Restored: {original}")
-        for file_path, _ in file_matches:
-            if file_path not in backups and os.path.exists(file_path):
-                os.remove(file_path)
-                print(f"  🗑️  Removed new file: {file_path}")
-        print("✅ Rollback complete — no broken code was committed.")
-        fail(f"the build failed and changes were rolled back.\n\n```\n{error[-1500:]}\n```", mark_comment_processed=True)
-
-    # Clean up backup files
-    for backup in backups.values():
-        if os.path.exists(backup):
-            os.remove(backup)
 
     print("✅ Build Successful")
 
@@ -247,20 +161,20 @@ try:
     # ==========================================================
 
     git = GitService()
-
     committed, git_error = git.commit("Daily Portfolio Improvement")
 
     if git_error:
-        # The build was valid but git failed (push race, auth, etc). Do NOT
-        # mark the comment processed — this is a good, working patch that
-        # never made it to the remote, and it's worth retrying as-is.
-        fail(f"the change built successfully but could not be committed/pushed.\n\n```\n{git_error}\n```")
+        # Good, building code that never reached the remote — leave the
+        # comment unprocessed so this feedback is retried as-is next run.
+        fail(f"the change built successfully but could not be pushed.\n\n```\n{git_error}\n```", run=run)
 
     if not committed:
         feedback_service.report(
             issue,
-            "ℹ️ Generated a patch for this feedback, but it produced no "
-            "actual file changes (already up to date)."
+            f"## ℹ️ Daily Update — {today()}\n\n"
+            f"**Your request**\n{quoted(feedback)}\n\n"
+            "I produced a change for this, but it came out identical to what's "
+            "already on the site — nothing to commit."
         )
         feedback_service.mark_processed(comment)
         print("🎉 Agent Finished — nothing to commit")
@@ -268,14 +182,43 @@ try:
 
     print("✅ Changes Committed")
 
-    goal_line = next((line for line in plan.splitlines() if line.startswith("GOAL:")), plan.splitlines()[0])
-    changed_files = ", ".join(f"`{p}`" for p, _ in file_matches)
-    feedback_service.report(
-        issue,
-        f"✅ Applied this feedback and pushed a change.\n\n"
-        f"**{goal_line}**\n\n"
-        f"Files changed: {changed_files}"
-    )
+    # ==========================================================
+    # Report back
+    # ==========================================================
+
+    sha = os.popen("git rev-parse HEAD").read().strip()[:7]
+    goal = plan_section(run.plan, "GOAL") or "Applied the requested change"
+    details = plan_section(run.plan, "DETAILS")
+
+    changed = [
+        f"- `{path}`{' — **new file**' if path not in project else ''}"
+        for path, _ in run.files
+    ]
+
+    body = [
+        f"## ✅ Daily Update — {today()}",
+        "",
+        "**Your request**",
+        quoted(feedback),
+        "",
+        "**What I changed**",
+        goal,
+        "",
+        "**Files updated**",
+        "\n".join(changed),
+    ]
+
+    if details:
+        body += ["", "**How**", details]
+
+    body += [
+        "",
+        "---",
+        f"Build ✅ passed · {run.iterations} iteration(s) · commit "
+        f"[`{sha}`](https://github.com/{repo.full_name}/commit/{sha})",
+    ]
+
+    feedback_service.report(issue, "\n".join(body))
     feedback_service.mark_processed(comment)
 
     print("\n🎉 Agent Finished Successfully")
@@ -286,6 +229,7 @@ except Exception as e:
     print(traceback.format_exc())
     feedback_service.report(
         issue,
-        f"⚠️ Daily update crashed unexpectedly: `{e}`\n\nCheck the Actions log for details."
+        f"## ⚠️ Daily Update — {today()}\n\n"
+        f"The run crashed unexpectedly: `{e}`\n\nCheck the Actions log for details."
     )
     exit(1)

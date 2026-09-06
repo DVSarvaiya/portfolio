@@ -79,12 +79,22 @@ class AIService:
                     or "requires more credits" in error_str.lower()
                 )
 
+                is_rate_limited = (
+                    "429" in error_str
+                    or "rate limit" in error_str.lower()
+                    or "too many requests" in error_str.lower()
+                )
+
                 # If model is unavailable or costs money, permanently drop it
                 # and try the next untried fallback — without spending a retry.
-                if is_model_error and remaining_fallbacks:
+                # A rate-limited model is worth swapping away from too: the
+                # limit is usually per-model, and the agent loop makes many
+                # calls per run.
+                if (is_model_error or is_rate_limited) and remaining_fallbacks:
                     next_model = remaining_fallbacks.pop(0)
                     tried_models.add(next_model)
-                    print(f"⚠️ Model '{current_model}' unavailable/paid. Switching to '{next_model}'...")
+                    reason = "rate-limited" if is_rate_limited else "unavailable/paid"
+                    print(f"⚠️ Model '{current_model}' {reason}. Switching to '{next_model}'...")
                     current_model = next_model
                     continue
 

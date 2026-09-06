@@ -1,58 +1,79 @@
 import re
 
-MAX_PLAN_FILES = 3
+from file_resolver import resolve_path, is_creatable, normalize
+
+MAX_PLAN_FILES = 4
+
+# Phrases that mean the model echoed the template back instead of writing a
+# plan. This is the exact failure that produced a "GOAL:" followed by the
+# rule list, so it's checked explicitly rather than hoped away.
+META_MARKERS = (
+    "[filepath]",
+    "[sentence]",
+    "[one sentence",
+    "[what to change",
+    "[2-3 sentences",
+    "[3-5 sentences",
+    "exactly one file per plan",
+    "files to modify:\n- [",
+    "do not output any thinking",
+    "no new npm packages",
+    "start your response with",
+)
+
+# Any src/... or public/... path, or a bare filename like page.js
+PATH_PATTERN = re.compile(
+    r'((?:src|public)/[\w./-]+\.\w{2,4}|[\w-]+\.(?:js|jsx|ts|tsx|css))',
+    re.IGNORECASE,
+)
 
 
 class PlannerService:
 
-    def build_plan(self, ai, context):
-        system_prompt = """You are a Senior Frontend Architect + Designer planning code changes for a Next.js portfolio website. You are opinionated about quality and never ship a bland, half-implemented change.
+    def build_plan(self, ai, context, previous_error=None):
+        system_prompt = """You are a senior frontend engineer planning ONE concrete change to a Next.js + Tailwind CSS v4 portfolio site.
 
-CRITICAL: Output ONLY the plan. No thinking, no analysis, no reasoning. Start your response with "GOAL:" immediately.
+Reply with ONLY a plan in this shape. Never repeat these instructions back.
 
-You MUST respond in this EXACT format and nothing else:
-
-GOAL: [one sentence describing what needs to change]
+GOAL: Replace the mouse-follow glow in the hero with a static CSS gradient so the page stops stuttering.
 
 FILES TO MODIFY:
-- [filepath]: [what to change in this file]
-- [filepath]: [what to change in this file]   (only if this feature genuinely requires more than one file)
+- src/app/page.js: delete the mousePos state, its mousemove effect, and the glow div; add a static gradient div
+- src/app/globals.css: add a .hero-glow class with a radial-gradient using var(--primary)
 
 DETAILS:
-[3-5 sentences with concrete implementation detail: exact colors/spacing/behavior, not vague adjectives like "improve" or "enhance".]
+Remove the useState/useEffect pair that tracks the cursor and the absolutely positioned div that follows it. Replace it with a single fixed div using the new .hero-glow class so nothing re-renders on mouse movement.
 
-RULES ABOUT SCOPE:
-- List the MINIMUM number of files a *complete, working* version of this feature needs — usually 1, up to a maximum of 3.
-- A feature that touches shared state or global appearance (e.g. a theme toggle, a global font change, a layout-wide nav) genuinely needs multiple coordinated files — list all of them rather than shipping a button with no wiring behind it. A change scoped to one section (e.g. restyle the projects grid) needs only 1 file.
-- Only reference files that exist in the project file list below.
-- Do NOT suggest creating new component files — only modify existing ones.
+That is the exact shape of a correct answer. Now write one for the real request.
 
-RULES ABOUT QUALITY (this is what separates a good plan from a lazy one):
-- Be concrete: name exact Tailwind utility classes, exact copy text, exact spacing/sizes — not "make it nicer".
-- If the feedback is vague (e.g. "make it better"), you must still produce ONE specific, well-scoped improvement — do not describe multiple vague options.
-- Prefer changes that use the project's existing design tokens (CSS variables like --primary, --accent, --muted, --background, --foreground, --border, --card, --glass-bg, --surface-soft/medium/strong) over introducing new hardcoded colors, so the result stays consistent with the rest of the site and with dark/light theming.
-- Every interactive element must have a real hover/focus state and an accessible label — a plan that adds a button with no visual feedback state is incomplete.
-- Never propose a change that is purely cosmetic scaffolding with no behavior (e.g. a toggle/button that doesn't actually do anything) — if it's interactive, its full behavior must be part of the plan.
-
-RULES ABOUT STACK:
-- Do NOT suggest installing new npm packages. Only use: react, react-dom, next, tailwindcss.
-- Do NOT suggest framer-motion, three.js, lucide-react, react-icons, or any other package.
-- Use plain CSS and inline styles/CSS keyframes for animations, not external animation libraries.
-- This project uses Tailwind CSS v4. NEVER use @apply in CSS files — it causes build errors.
-- Do NOT output any thinking, reasoning, or analysis before the plan.
+RULES:
+- Name real files. Use full paths from the file list you are given (e.g. src/app/page.js), never placeholders.
+- List 1 to 4 files — as many as a COMPLETE working change needs, no more. A change to one section needs 1 file. Anything global (theming, a shared component, a nav used everywhere) needs the files that make it actually work.
+- You MAY create a new file (e.g. src/app/components/ProjectCard.js). If you do, also list the existing file that will import it — a new file nothing imports is dead code.
+- If the request needs content (projects, skills, stats, testimonials, posts), say that realistic hardcoded data must be written into the file. Never plan for empty arrays or "Coming soon" placeholders.
+- Be concrete: name the actual elements, classes and values to change, not "improve the design".
+- Only use react, react-dom, next, tailwindcss. No new npm packages, no icon libraries, no animation libraries.
+- Tailwind v4: never use @apply. Plain CSS or utility classes only.
+- Output only GOAL / FILES TO MODIFY / DETAILS. No preamble, no reasoning, no markdown fences.
 """
 
-        file_list = "\\n".join(f"- {path}" for path in context["project"].keys())
+        file_list = "\n".join(f"- {path}" for path in context["project"].keys())
 
-        planning_prompt = f"""Here is the user's feedback:
+        planning_prompt = f"""Request from the site owner:
 
 {context["feedback"]}
 
-Here are the files in the project:
+Files that exist in this project (use these exact paths):
 {file_list}
 
-Create a specific, high-quality plan to implement the feedback. Focus on modifying existing files only.
-Start your response with "GOAL:" immediately. No thinking or analysis."""
+Write the plan now, starting with "GOAL:"."""
+
+        if previous_error:
+            planning_prompt += (
+                f"\n\nYour previous attempt was rejected: {previous_error}\n"
+                "Write a new plan that fixes that problem. Name real file paths "
+                "from the list above."
+            )
 
         result = ai.ask(
             planning_prompt,
@@ -64,38 +85,98 @@ Start your response with "GOAL:" immediately. No thinking or analysis."""
         result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
         result = re.sub(r"(?i)^.*?here'?s?\s+(a\s+)?thinking.*?:\s*", '', result, flags=re.DOTALL)
 
-        # Extract structured sections individually instead of taking everything after GOAL:
         goal_match = re.search(r'GOAL:\s*(.+?)(?:\n|$)', result)
-        file_match = re.search(r'FILE(?:S)?\s+TO\s+MODIFY:\s*\n((?:\s*-\s+.+\n?)+)', result, re.IGNORECASE)
+        file_match = re.search(
+            r'FILE(?:S)?\s+TO\s+MODIFY:\s*\n((?:\s*[-•*]\s+.+\n?)+)',
+            result,
+            re.IGNORECASE,
+        )
         details_match = re.search(r'DETAILS:\s*\n((?:.+\n?){1,8})', result, re.IGNORECASE)
 
-        # If we found structured sections, reconstruct a clean plan
         if goal_match and file_match:
             goal = goal_match.group(1).strip().rstrip('"').strip()
-            # If the goal is garbage (too short or just punctuation), use a generic one
             if len(goal) < 10 or not any(c.isalpha() for c in goal):
-                goal = "Improve the portfolio UI based on user feedback"
+                goal = "Improve the portfolio based on the site owner's feedback"
 
-            # Cap at MAX_PLAN_FILES bullet lines so a runaway model can't
-            # turn this into a repo-wide rewrite.
             file_lines = [line for line in file_match.group(1).strip().splitlines() if line.strip()]
             files = "\n".join(file_lines[:MAX_PLAN_FILES])
-            details = details_match.group(1).strip() if details_match else "Implement the changes described above."
+            details = details_match.group(1).strip() if details_match else "Implement the change described above."
 
-            result = f"GOAL: {goal}\n\nFILES TO MODIFY:\n{files}\n\nDETAILS:\n{details}"
-        else:
-            # Fallback: try to extract from "GOAL:" but limit to first 500 chars
-            goal_pos = result.find("GOAL:")
-            if goal_pos >= 0:
-                result = result[goal_pos:goal_pos + 500]
-            else:
-                # Last resort: generate a minimal plan
-                result = f"""GOAL: Improve the portfolio UI based on user feedback
+            return f"GOAL: {goal}\n\nFILES TO MODIFY:\n{files}\n\nDETAILS:\n{details}".strip()
 
-FILES TO MODIFY:
-- src/app/page.js: Update the page component based on user feedback
-
-DETAILS:
-Implement the user's requested changes to src/app/page.js while preserving existing functionality."""
+        goal_pos = result.find("GOAL:")
+        if goal_pos >= 0:
+            return result[goal_pos:goal_pos + 800].strip()
 
         return result.strip()
+
+
+def synthesize_plan(feedback, target_files):
+    """Build a usable plan deterministically when the model can't.
+
+    Better than exiting: we already know which files the feedback points at,
+    so hand the developer stage a concrete instruction built from them.
+    """
+    file_lines = "\n".join(
+        f"- {path}: apply the site owner's requested change to this file"
+        for path in target_files
+    )
+
+    return (
+        f"GOAL: Apply the site owner's requested change: {feedback.strip()[:180]}\n\n"
+        f"FILES TO MODIFY:\n{file_lines}\n\n"
+        f"DETAILS:\n{feedback.strip()[:600]}\n"
+        "Implement this fully and keep all existing working functionality intact."
+    )
+
+
+def validate_plan(plan, project_files):
+    """Turn a raw plan into a concrete list of target files.
+
+    Returns (target_files, error). Loose references ("page.js") are resolved
+    against the real project; brand-new files are allowed when the path is
+    somewhere the agent is permitted to write.
+    """
+    text = (plan or "").strip()
+
+    if len(text) < 40:
+        return [], "the plan was too short to act on"
+
+    lowered = text.lower()
+    if any(marker in lowered for marker in META_MARKERS):
+        return [], (
+            "the plan repeated the instruction template instead of naming a real "
+            "change (do not echo the rules back — write an actual GOAL and real file paths)"
+        )
+
+    section = re.search(
+        r'FILE(?:S)?\s+TO\s+MODIFY:\s*\n((?:\s*[-•*]\s+.+\n?)+)',
+        text,
+        re.IGNORECASE,
+    )
+    search_area = section.group(1) if section else text
+
+    candidates = PATH_PATTERN.findall(search_area)
+    if not candidates and section:
+        candidates = PATH_PATTERN.findall(text)
+
+    target_files = []
+    unresolved = []
+
+    for candidate in candidates:
+        resolved = resolve_path(candidate, project_files)
+        if resolved:
+            if resolved not in target_files:
+                target_files.append(resolved)
+        elif is_creatable(candidate):
+            new_path = normalize(candidate)
+            if new_path not in target_files:
+                target_files.append(new_path)
+        else:
+            unresolved.append(candidate)
+
+    if not target_files:
+        detail = f" (could not match: {', '.join(unresolved[:3])})" if unresolved else ""
+        return [], f"the plan named no file that exists in this project{detail}"
+
+    return target_files[:MAX_PLAN_FILES], None
