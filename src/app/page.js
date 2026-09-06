@@ -445,6 +445,14 @@ export default function Home() {
         id="about"
         className="relative min-h-screen pt-24 pb-12 overflow-hidden hero-bg"
       >
+        {/* Floating orbs parallax layer */}
+        <div className="orb orb-1" aria-hidden="true" />
+        <div className="orb orb-2" aria-hidden="true" />
+        <div className="orb orb-3" aria-hidden="true" />
+
+        {/* Parallax grid behind headline */}
+        <div className="bg-grid" aria-hidden="true" />
+
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[calc(100vh-6rem)] text-center">
           {/* Profile avatar */}
           <div className="relative mb-8">

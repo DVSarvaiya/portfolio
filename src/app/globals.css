@@ -258,6 +258,172 @@ html {
   100% { transform: scale(1.6); opacity: 0; }
 }
 
+/* ========== Scroll-driven visual artifacts ========== */
+
+/* Animated gradient mesh — full-viewport fixed layer */
+.bg-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 20%, rgba(42, 157, 143, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 80% 30%, rgba(224, 120, 86, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 50% at 50% 80%, rgba(111, 191, 171, 0.08) 0%, transparent 50%),
+    conic-gradient(from 0deg at 50% 50%, rgba(42, 157, 143, 0.06) 0deg, rgba(224, 120, 86, 0.06) 120deg, rgba(111, 191, 171, 0.06) 240deg, rgba(42, 157, 143, 0.06) 360deg);
+  animation: mesh-shift 30s linear infinite;
+}
+
+.dark .bg-mesh {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 20%, rgba(42, 157, 143, 0.16) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 80% 30%, rgba(224, 120, 86, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 50% at 50% 80%, rgba(111, 191, 171, 0.10) 0%, transparent 50%),
+    conic-gradient(from 0deg at 50% 50%, rgba(42, 157, 143, 0.08) 0deg, rgba(224, 120, 86, 0.08) 120deg, rgba(111, 191, 171, 0.08) 240deg, rgba(42, 157, 143, 0.08) 360deg);
+}
+
+@keyframes mesh-shift {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    transform: translate(2%, -1.5%) scale(1.04);
+    filter: hue-rotate(20deg);
+  }
+  100% {
+    transform: translate(0%, 0%) scale(1);
+    filter: hue-rotate(0deg);
+  }
+}
+
+/* Scroll progress bar — fixed top */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  z-index: 60;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+  box-shadow: 0 0 8px rgba(42, 157, 143, 0.4);
+  transition: width 80ms linear;
+  pointer-events: none;
+}
+
+/* Parallax grid — faint panning lines */
+.bg-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0px, rgba(255, 255, 255, 0.04) 1px, transparent 1px, transparent 40px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0px, rgba(255, 255, 255, 0.04) 1px, transparent 1px, transparent 40px);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, rgba(0, 0, 0, 1) 0%, transparent 80%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, rgba(0, 0, 0, 1) 0%, transparent 80%);
+  animation: grid-pan 60s linear infinite;
+}
+
+.dark .bg-grid {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0px, rgba(255, 255, 255, 0.05) 1px, transparent 1px, transparent 40px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0px, rgba(255, 255, 255, 0.05) 1px, transparent 1px, transparent 40px);
+}
+
+@keyframes grid-pan {
+  0% {
+    background-position: 0px 0px, 0px 0px;
+  }
+  100% {
+    background-position: 40px 40px, 40px 40px;
+  }
+}
+
+/* Floating orbs — hero parallax layer */
+.orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(48px);
+  mix-blend-mode: screen;
+  opacity: 0.4;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.orb-1 {
+  width: 24rem;
+  height: 24rem;
+  top: 5%;
+  left: 8%;
+  background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+  animation: float-1 18s ease-in-out infinite;
+}
+
+.orb-2 {
+  width: 32rem;
+  height: 32rem;
+  top: 40%;
+  right: 5%;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  animation: float-2 22s ease-in-out infinite;
+}
+
+.orb-3 {
+  width: 20rem;
+  height: 20rem;
+  bottom: 10%;
+  left: 35%;
+  background: radial-gradient(circle, var(--primary-soft) 0%, transparent 70%);
+  animation: float-3 26s ease-in-out infinite;
+}
+
+@keyframes float-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -40px) scale(1.08);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+}
+
+@keyframes float-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-40px, 30px) scale(1.06);
+  }
+  66% {
+    transform: translate(25px, -25px) scale(0.92);
+  }
+}
+
+@keyframes float-3 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(20px, 35px) scale(1.1);
+  }
+  66% {
+    transform: translate(-30px, -15px) scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-mesh,
+  .bg-grid,
+  .orb-1,
+  .orb-2,
+  .orb-3 {
+    animation: none;
+  }
+}
+
 /* ========== Tailwind Color Mappings ========== */
 @theme inline {
   --color-background: var(--background);
