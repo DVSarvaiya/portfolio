@@ -5,13 +5,13 @@ from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
-from github_service import GitHubService
-from ai_service import AIService
-from file_manager import FileManager
-from feedback_service import FeedbackService
-from execution_context import ExecutionContext
-from agent_runner import AgentRunner, DEFAULT_MAX_ITERATIONS
-from git_service import GitService
+from agent_core.github_service import GitHubService
+from agent_core.ai_service import AIService
+from agent_core.file_manager import FileManager
+from agent_core.feedback_service import FeedbackService
+from agent_core.execution_context import ExecutionContext
+from agent_core.agent_runner import AgentRunner, DEFAULT_MAX_ITERATIONS
+from agent_core.git_service import GitService
 
 # ==========================================================
 # Load Environment Variables

@@ -1,7 +1,7 @@
 import os
 import re
 
-from file_resolver import resolve_path, normalize
+from .file_resolver import resolve_path, normalize
 
 
 class PatchParseError(Exception):

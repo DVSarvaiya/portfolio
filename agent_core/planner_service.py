@@ -1,6 +1,6 @@
 import re
 
-from file_resolver import resolve_path, repair_new_path, normalize
+from .file_resolver import resolve_path, repair_new_path, normalize
 
 MAX_PLAN_FILES = 4
 
