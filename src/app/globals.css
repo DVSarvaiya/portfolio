@@ -449,6 +449,63 @@ html {
   height: 100%;
 }
 
+/* ========== Scroll-driven reveal — native CSS only ========== */
+
+/* Default: content fully visible so unsupported browsers / reduced-motion
+   users never see a stuck opacity-0 element. */
+.reveal {
+  opacity: 1;
+  transform: none;
+}
+
+/* Optional per-element stagger via inline style (e.g. style={{animationDelay: "0.1s"}})
+   — respected by the @supports override below. */
+@supports (animation-timeline: view()) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    animation-name: reveal-up;
+    animation-duration: 1ms;
+    animation-timeline: view();
+    animation-range: entry 10% cover 35%;
+    animation-fill-mode: both;
+  }
+
+  @keyframes reveal-up {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* ========== Top reading-progress bar — native CSS scroll timeline ========== */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform-origin: left center;
+  transform: scaleX(0);
+  background: linear-gradient(to right, var(--primary), var(--accent));
+  z-index: 50;
+  pointer-events: none;
+}
+
+@supports (animation-timeline: scroll(root)) {
+  .reading-progress {
+    animation: progress-fill linear both;
+    animation-timeline: scroll(root);
+  }
+
+  @keyframes progress-fill {
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
+
 /* ========== Reduced motion — kill all decorative animation ========== */
 @media (prefers-reduced-motion: reduce) {
   .bg-mesh,
@@ -468,6 +525,17 @@ html {
   /* Keep accessibility-safe micro-animations only when explicit */
   .hero-particles {
     display: none;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+
+  .reading-progress {
+    animation: none !important;
+    transform: scaleX(1) !important;
   }
 }
 

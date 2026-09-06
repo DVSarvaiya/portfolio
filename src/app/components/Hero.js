@@ -360,11 +360,12 @@ export default function Hero() {
         </span>
 
         <h1
-          className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-5 tracking-tight"
+          className="reveal text-4xl sm:text-5xl lg:text-6xl font-bold mb-5 tracking-tight"
           style={{
             fontFamily: "var(--font-display)",
             color: "var(--foreground)",
             letterSpacing: "-0.025em",
+            animationDelay: "0s",
           }}
         >
           <span

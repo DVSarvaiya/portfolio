@@ -68,6 +68,8 @@ const projects = [
 export default function Projects() {
   const [showProjects, setShowProjects] = useState(false);
 
+  const visibleProjects = showProjects ? projects : projects.slice(0, 3);
+
   return (
     <section
       id="projects"
@@ -84,11 +86,12 @@ export default function Projects() {
               Selected Work
             </span>
             <h2
-              className="text-3xl sm:text-4xl font-bold"
+              className="reveal text-3xl sm:text-4xl font-bold"
               style={{
                 fontFamily: "var(--font-display)",
                 color: "var(--foreground)",
                 letterSpacing: "-0.02em",
+                animationDelay: "0s",
               }}
             >
               Things I&apos;ve built recently
@@ -119,8 +122,12 @@ export default function Projects() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {(showProjects ? projects : projects.slice(0, 3)).map((project) => (
-            <article key={project.id} className="card-surface overflow-hidden">
+          {visibleProjects.map((project, index) => (
+            <article
+              key={project.id}
+              className="reveal card-surface overflow-hidden"
+              style={{ animationDelay: `${(index + 1) * 0.1}s` }}
+            >
               <a
                 href={project.link}
                 target="_blank"
