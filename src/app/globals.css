@@ -258,6 +258,30 @@ html {
   100% { transform: scale(1.6); opacity: 0; }
 }
 
+/* ========== Tech cube — 3D rotation ========== */
+/* Drives the .techcube-spin element rendered in src/app/components/TechCube.js.
+   A full 360° on both rotateX and rotateY gives the cube a constant, calm
+   tumble without needing any JavaScript or per-frame state. */
+@keyframes cube-spin {
+  0% {
+    transform: rotateX(0deg) rotateY(0deg);
+  }
+  100% {
+    transform: rotateX(360deg) rotateY(360deg);
+  }
+}
+
+/* Pause the cube when the user hovers anywhere on the hover wrapper. */
+.techcube-hover:hover .techcube-spin {
+  animation-play-state: paused;
+}
+
+/* Each face shares backface visibility so the reverse side reads as a
+   faint glass panel — matches the rest of the glassmorphism language. */
+.techcube-face {
+  backface-visibility: visible;
+}
+
 /* ========== Scroll-driven visual artifacts ========== */
 
 /* Animated gradient mesh — full-viewport fixed layer */
@@ -563,6 +587,12 @@ html {
   .journey-progress {
     animation: none !important;
     transform: scaleX(1) !important;
+  }
+
+  /* Stop the cube from spinning and present a static, slightly angled face. */
+  .techcube-spin {
+    animation: none !important;
+    transform: rotateX(-15deg) rotateY(25deg);
   }
 }
 

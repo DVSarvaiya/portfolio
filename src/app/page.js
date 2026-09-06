@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import Projects from "./components/Projects";
 import Journey from "./components/Journey";
+import TechCube from "./components/TechCube";
 
 const socialLinks = [
   {
@@ -93,56 +94,97 @@ function Skills() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {["frontend", "backend", "devops"].map((category) => {
-            const categorySkills = skills.filter((s) => s.category === category);
-            if (categorySkills.length === 0) return null;
-            const categoryLabels = {
-              frontend: "Frontend",
-              backend: "Backend",
-              devops: "DevOps",
-            };
-            return (
-              <div key={category} className="card-surface p-6">
+        {/* Layout: skill bars on the left, the rotating tech cube on the
+            right. On mobile they stack — cube on top, bars below. */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Existing 3-column skill bars — unchanged behavior. */}
+          <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-6 order-2 lg:order-1">
+            {["frontend", "backend", "devops"].map((category) => {
+              const categorySkills = skills.filter((s) => s.category === category);
+              if (categorySkills.length === 0) return null;
+              const categoryLabels = {
+                frontend: "Frontend",
+                backend: "Backend",
+                devops: "DevOps",
+              };
+              return (
+                <div key={category} className="card-surface p-6">
+                  <h3
+                    className="text-xs font-semibold uppercase tracking-[0.2em] mb-5"
+                    style={{ color: "var(--primary)" }}
+                  >
+                    {categoryLabels[category]}
+                  </h3>
+                  <div className="space-y-4">
+                    {categorySkills.map((skill) => (
+                      <div key={skill.id}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span
+                            className="text-sm font-medium"
+                            style={{ color: "var(--foreground)" }}
+                          >
+                            {skill.name}
+                          </span>
+                          <span className="text-xs text-foreground/55">
+                            {skill.level}
+                          </span>
+                        </div>
+                        <div
+                          className="h-1.5 rounded-full overflow-hidden"
+                          style={{ background: "var(--surface)" }}
+                        >
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: getLevelPercent(skill.level),
+                              background: getLevelTone(skill.level),
+                              transition: "width 600ms ease",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Rotating tech cube — a calm visual companion to the bars.
+              Hover to pause and read a face. */}
+          <div className="lg:col-span-4 order-1 lg:order-2">
+            <div
+              className="card-surface p-6 lg:sticky lg:top-24"
+              style={{ borderRadius: "18px" }}
+            >
+              <div className="flex items-center justify-between mb-3">
                 <h3
-                  className="text-xs font-semibold uppercase tracking-[0.2em] mb-5"
+                  className="text-xs font-semibold uppercase tracking-[0.2em]"
                   style={{ color: "var(--primary)" }}
                 >
-                  {categoryLabels[category]}
+                  Stack in Motion
                 </h3>
-                <div className="space-y-4">
-                  {categorySkills.map((skill) => (
-                    <div key={skill.id}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span
-                          className="text-sm font-medium"
-                          style={{ color: "var(--foreground)" }}
-                        >
-                          {skill.name}
-                        </span>
-                        <span className="text-xs text-foreground/55">
-                          {skill.level}
-                        </span>
-                      </div>
-                      <div
-                        className="h-1.5 rounded-full overflow-hidden"
-                        style={{ background: "var(--surface)" }}
-                      >
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: getLevelPercent(skill.level),
-                            background: getLevelTone(skill.level),
-                            transition: "width 600ms ease",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <span
+                  className="text-[11px] font-mono px-2 py-0.5 rounded-md"
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  6 / 6
+                </span>
               </div>
-            );
-          })}
+              <p
+                className="text-xs mb-4 leading-relaxed"
+                style={{ color: "var(--foreground)", opacity: 0.65 }}
+              >
+                The six tools I reach for first on any new project. Hover the
+                cube to pause it.
+              </p>
+              <TechCube />
+            </div>
+          </div>
         </div>
       </div>
     </section>
