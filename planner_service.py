@@ -1,6 +1,6 @@
 import re
 
-from file_resolver import resolve_path, is_creatable, normalize
+from file_resolver import resolve_path, repair_new_path, normalize
 
 MAX_PLAN_FILES = 4
 
@@ -21,9 +21,11 @@ META_MARKERS = (
     "start your response with",
 )
 
-# Any src/... or public/... path, or a bare filename like page.js
+# A path with any number of leading folders, or a bare filename.
+# The folders matter: "about/page.js" and "page.js" are completely different
+# files in the App Router, so the pattern must not swallow the directory.
 PATH_PATTERN = re.compile(
-    r'((?:src|public)/[\w./-]+\.\w{2,4}|[\w-]+\.(?:js|jsx|ts|tsx|css))',
+    r'((?:[\w.-]+/)*[\w.-]+\.(?:js|jsx|ts|tsx|css))',
     re.IGNORECASE,
 )
 
@@ -49,7 +51,11 @@ That is the exact shape of a correct answer. Now write one for the real request.
 RULES:
 - Name real files. Use full paths from the file list you are given (e.g. src/app/page.js), never placeholders.
 - List 1 to 4 files — as many as a COMPLETE working change needs, no more. A change to one section needs 1 file. Anything global (theming, a shared component, a nav used everywhere) needs the files that make it actually work.
-- You MAY create a new file (e.g. src/app/components/ProjectCard.js). If you do, also list the existing file that will import it — a new file nothing imports is dead code.
+- You MAY and SHOULD create new files when the request calls for one. If you do, also list the existing file that will import or link to it — a new file nothing references is dead code.
+- CREATING A NEW PAGE/ROUTE (Next.js App Router, file-system routing): a route is a FOLDER containing a page.js. A page at /about is the file src/app/about/page.js, exporting a default React component. Never put a second page in src/app/page.js — that file is the home page ("/") and must not be replaced by the new page. Linking to it means a <Link href="/about"> from next/link in src/app/page.js.
+  So "give X its own page" is at minimum two files:
+  - src/app/x/page.js (new)
+  - src/app/page.js (change that nav item to a <Link href="/x">)
 - If the request needs content (projects, skills, stats, testimonials, posts), say that realistic hardcoded data must be written into the file. Never plan for empty arrays or "Coming soon" placeholders.
 - Be concrete: name the actual elements, classes and values to change, not "improve the design".
 - Only use react, react-dom, next, tailwindcss. No new npm packages, no icon libraries, no animation libraries.
@@ -165,13 +171,15 @@ def validate_plan(plan, project_files):
 
     for candidate in candidates:
         resolved = resolve_path(candidate, project_files)
+
+        if not resolved:
+            # Not an existing file — treat it as one to create, repairing
+            # loose forms like "about/page.js" into "src/app/about/page.js".
+            resolved = repair_new_path(candidate)
+
         if resolved:
             if resolved not in target_files:
                 target_files.append(resolved)
-        elif is_creatable(candidate):
-            new_path = normalize(candidate)
-            if new_path not in target_files:
-                target_files.append(new_path)
         else:
             unresolved.append(candidate)
 

@@ -68,8 +68,16 @@ def resolve_path(candidate, project_files):
         if path.lower().endswith("/" + normalized.lower()):
             return path
 
-    # Bare basename: "page.js" -> "src/app/page.js"
-    base = os.path.basename(normalized).lower()
+    # Anything with a directory in it that matched nothing above is a NEW
+    # file, not a typo for an existing one. This matters enormously in the
+    # App Router, where every route file is called page.js: falling back to
+    # basename matching here would resolve a brand-new "src/app/about/page.js"
+    # onto the existing home page and overwrite it.
+    if "/" in normalized:
+        return None
+
+    # Bare basename only ("page.js", "globals.css")
+    base = normalized.lower()
     matches = [p for p in project_files if os.path.basename(p).lower() == base]
     if len(matches) == 1:
         return matches[0]
@@ -78,6 +86,46 @@ def resolve_path(candidate, project_files):
             return match
 
     return matches[0] if matches else None
+
+
+def repair_new_path(candidate):
+    """Normalize a new-file path the model wrote loosely.
+
+    Models write "about/page.js" or "app/about/page.js" when they mean
+    "src/app/about/page.js". Returns a creatable path, or None.
+    """
+    normalized = normalize(candidate)
+    if not normalized:
+        return None
+
+    # src/app/ first: everything in this project lives there, and a route
+    # ("about/page.js") is only a real route under src/app.
+    for attempt in (normalized, f"src/app/{normalized}", f"src/{normalized}"):
+        if is_creatable(attempt):
+            return attempt
+
+    return None
+
+
+def suggest_route(feedback):
+    """If the request asks for a whole new page/route, propose where it goes.
+
+    A new App Router route is a directory with a page.js inside it, which a
+    weak model routinely gets wrong — so we hand it the correct path.
+    """
+    text = (feedback or "").lower()
+
+    triggers = ("new page", "separate page", "different page", "another page",
+                "new route", "route for", "dedicated page", "own page", "make page")
+    if not any(trigger in text for trigger in triggers):
+        return None
+
+    for name in ("about", "projects", "skills", "contact", "blog", "resume",
+                 "experience", "work"):
+        if name in text:
+            return f"src/app/{name}/page.js"
+
+    return "src/app/about/page.js"
 
 
 def is_creatable(candidate):
@@ -111,6 +159,15 @@ def infer_files(feedback, project_files, limit=2):
             scores[path] = scores.get(path, 0) + hits
 
     ranked = [path for path, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)]
+
+    # A request for a whole new page needs a route file that doesn't exist
+    # yet — put it first, and keep page.js alongside it so the nav gets linked.
+    route = suggest_route(feedback)
+    if route and route not in project_files:
+        ranked = [route] + [p for p in ranked if p != route]
+        if "src/app/page.js" in project_files and "src/app/page.js" not in ranked:
+            ranked.append("src/app/page.js")
+        limit = max(limit, 2)
 
     for fallback in DEFAULT_TARGETS:
         if fallback in project_files and fallback not in ranked:
