@@ -9,11 +9,11 @@ that actually compiles instead of giving up on its first bad answer.
 import os
 import shutil
 
-from planner_service import PlannerService, validate_plan, synthesize_plan
-from developer_service import DeveloperService
-from patch_parser import PatchParser, PatchParseError, PatchSecurityError, validate_file_paths
-from file_resolver import infer_files
-from validator import Validator
+from .planner_service import PlannerService, validate_plan, synthesize_plan
+from .developer_service import DeveloperService
+from .patch_parser import PatchParser, PatchParseError, PatchSecurityError, validate_file_paths
+from .file_resolver import infer_files
+from .validator import Validator
 
 # Hard ceiling so a stuck agent can never loop forever.
 DEFAULT_MAX_ITERATIONS = 10

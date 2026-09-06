@@ -37,8 +37,9 @@ class FileManager:
             "__pycache__",
             "patches",
             "plans",
-            "prompts",
             ".github",
+            # The agent's own source — it edits the site, not itself.
+            "agent_core",
         }
 
         ignored_files = {
