@@ -225,7 +225,7 @@ export default function Home() {
     { name: "About", href: "/about" },
     { name: "Projects", href: "#projects" },
     { name: "Skills", href: "#skills" },
-    { name: "Contact", href: "#contact" },
+    { name: "Contact", href: "/contact" },
   ];
 
   const socialLinks = [
@@ -269,7 +269,7 @@ export default function Home() {
             {/* Desktop Nav Links */}
             <div className="hidden md:flex space-x-8">
               {navLinks.map((link) => (
-                link.name === "About" ? (
+                link.name === "About" || link.name === "Contact" ? (
                   <Link
                     key={link.name}
                     href={link.href}
@@ -346,7 +346,7 @@ export default function Home() {
         >
           <div className="px-4 pb-4 space-y-3 bg-white/95 border-t border-slate-200/60 dark:bg-gray-900/95 dark:border-gray-800/30">
             {navLinks.map((link) => (
-              link.name === "About" ? (
+              link.name === "About" || link.name === "Contact" ? (
                 <Link
                   key={link.name}
                   href={link.href}
@@ -460,18 +460,12 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <a
-              href="#contact"
+            <Link
+              href="/contact"
               className="group relative px-8 py-3.5 text-white font-medium rounded-full overflow-hidden transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0"
               style={{
                 background: "linear-gradient(135deg, #3b82f6, #a78bfa)",
                 boxShadow: "0 4px 14px rgba(59,130,246,0.35)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 8px 24px rgba(59,130,246,0.5)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "0 4px 14px rgba(59,130,246,0.35)";
               }}
             >
               <span className="flex items-center space-x-2">
@@ -490,7 +484,7 @@ export default function Home() {
                   />
                 </svg>
               </span>
-            </a>
+            </Link>
             <a
               href="#projects"
               className="group relative px-8 py-3.5 bg-white text-slate-700 font-medium rounded-full border border-slate-200 transition-all duration-300 hover:border-blue-400 hover:-translate-y-0.5 active:translate-y-0 dark:bg-white/5 dark:text-gray-200 dark:border-white/10 dark:hover:border-primary/50"
@@ -546,12 +540,6 @@ export default function Home() {
                 background: "linear-gradient(135deg, #3b82f6, #a78bfa)",
                 boxShadow: "0 2px 10px rgba(59,130,246,0.3)",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 4px 18px rgba(59,130,246,0.45)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "0 2px 10px rgba(59,130,246,0.3)";
-              }}
             >
               {showProjects ? "Hide Projects" : "Show All Projects"}
             </button>
@@ -563,12 +551,6 @@ export default function Home() {
                 key={project.id}
                 className="group bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 dark:bg-white/5 dark:border-white/10"
                 style={{ boxShadow: "0 2px 12px rgba(15,23,42,0.06)" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 12px 30px rgba(15,23,42,0.1)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "0 2px 12px rgba(15,23,42,0.06)";
-                }}
               >
                 <div
                   className="aspect-video relative overflow-hidden"
@@ -655,113 +637,34 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Contact Section */}
+        {/* Contact CTA Section */}
         <section id="contact" className="mt-16">
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-gray-100 mb-8">Get In Touch</h2>
-          <form
-            onSubmit={handleSubmit}
-            className="max-w-xl mx-auto bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 dark:bg-white/5 dark:border-white/10"
+          <div
+            className="text-center bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 dark:bg-white/5 dark:border-white/10"
             style={{ boxShadow: "0 2px 16px rgba(15,23,42,0.06)" }}
           >
-            {submitStatus === "success" && (
-              <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-300">
-                <p className="font-medium">Message sent successfully!</p>
-                <p className="text-sm mt-1">I'll get back to you as soon as possible.</p>
-              </div>
-            )}
-            {submitStatus === "error" && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">
-                <p className="font-medium">Please fix the errors below.</p>
-              </div>
-            )}
-            <div className="space-y-5">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-900 dark:text-gray-100 mb-1.5">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors bg-white text-slate-900 focus:outline-none focus:ring-2 placeholder-slate-400 dark:bg-black/40 dark:text-gray-100 dark:placeholder-gray-400 ${
-                    errors.name
-                      ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/50"
-                      : "border-slate-200 focus:border-blue-500 focus:ring-blue-500 dark:border-white/10 dark:focus:border-primary dark:focus:ring-primary"
-                  }`}
-                  placeholder="Your name"
-                  aria-invalid={errors.name ? "true" : "false"}
-                />
-                {errors.name && (
-                  <p className="mt-1.5 text-sm text-red-600 dark:text-red-300">{errors.name}</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-900 dark:text-gray-100 mb-1.5">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors bg-white text-slate-900 focus:outline-none focus:ring-2 placeholder-slate-400 dark:bg-black/40 dark:text-gray-100 dark:placeholder-gray-400 ${
-                    errors.email
-                      ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/50"
-                      : "border-slate-200 focus:border-blue-500 focus:ring-blue-500 dark:border-white/10 dark:focus:border-primary dark:focus:ring-primary"
-                  }`}
-                  placeholder="your@email.com"
-                  aria-invalid={errors.email ? "true" : "false"}
-                />
-                {errors.email && (
-                  <p className="mt-1.5 text-sm text-red-600 dark:text-red-300">{errors.email}</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="message" className="block text-sm font-medium text-slate-900 dark:text-gray-100 mb-1.5">
-                  Message
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  rows={5}
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors bg-white text-slate-900 focus:outline-none focus:ring-2 placeholder-slate-400 resize-y min-h-[120px] dark:bg-black/40 dark:text-gray-100 dark:placeholder-gray-400 ${
-                    errors.message
-                      ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/50"
-                      : "border-slate-200 focus:border-blue-500 focus:ring-blue-500 dark:border-white/10 dark:focus:border-primary dark:focus:ring-primary"
-                  }`}
-                  placeholder="Your message..."
-                  aria-invalid={errors.message ? "true" : "false"}
-                />
-                {errors.message && (
-                  <p className="mt-1.5 text-sm text-red-600 dark:text-red-300">{errors.message}</p>
-                )}
-              </div>
-              <button
-                type="submit"
-                className="w-full px-6 py-3.5 text-white font-medium rounded-xl transition-all hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                style={{
-                  background: "linear-gradient(135deg, #3b82f6, #a78bfa)",
-                  boxShadow: "0 4px 14px rgba(59,130,246,0.35)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 8px 22px rgba(59,130,246,0.5)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(59,130,246,0.35)";
-                }}
-              >
-                Send Message
-              </button>
-            </div>
-          </form>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-gray-100 mb-3">
+              Let&apos;s Build Something Together
+            </h2>
+            <p className="text-slate-600 dark:text-gray-400 max-w-xl mx-auto mb-6">
+              Have a project in mind or just want to chat? Head over to the
+              dedicated contact page to send a message, drop an email, or
+              connect on social.
+            </p>
+            <Link
+              href="/contact"
+              className="inline-flex items-center space-x-2 px-6 py-3 text-white font-medium rounded-full transition-all hover:-translate-y-0.5"
+              style={{
+                background: "linear-gradient(135deg, #3b82f6, #a78bfa)",
+                boxShadow: "0 4px 14px rgba(59,130,246,0.35)",
+              }}
+            >
+              <span>Visit Contact Page</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
         </section>
 
         {/* Footer */}
